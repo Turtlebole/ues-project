@@ -1,0 +1,155 @@
+<div class="container mt-4">
+  <h2 class="mb-4"><i class="bi bi-shield-check me-2 text-danger"></i>Admin Dashboard</h2>
+
+  @if (error) { <div class="alert alert-danger alert-dismissible">{{ error }}</div> }
+  @if (success) { <div class="alert alert-success alert-dismissible">{{ success }}</div> }
+
+  <ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab === 'requests'" (click)="activeTab = 'requests'">
+        Registration Requests
+        @if (pendingRequests.length > 0) {
+          <span class="badge bg-danger ms-1">{{ pendingRequests.length }}</span>
+        }
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab === 'managers'" (click)="activeTab = 'managers'">Manage Managers</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab === 'users'" (click)="activeTab = 'users'">All Users</button>
+    </li>
+  </ul>
+
+  <!-- Registration Requests -->
+  @if (activeTab === 'requests') {
+    <div class="card">
+      <div class="card-header">Registration Requests</div>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Username</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (req of requests; track req.id) {
+              <tr>
+                <td>{{ req.firstName }} {{ req.lastName }}</td>
+                <td>{{ req.email }}</td>
+                <td>{{ req.username }}</td>
+                <td>{{ req.requestDate | date:'short' }}</td>
+                <td>
+                  <span class="badge"
+                    [class.bg-warning]="req.status === 'PENDING'"
+                    [class.bg-success]="req.status === 'APPROVED'"
+                    [class.bg-danger]="req.status === 'REJECTED'">
+                    {{ req.status }}
+                  </span>
+                </td>
+                <td>
+                  @if (req.status === 'PENDING') {
+                    <button class="btn btn-sm btn-success me-1" (click)="approve(req.id)">Approve</button>
+                    <button class="btn btn-sm btn-danger" (click)="reject(req.id)">Reject</button>
+                  }
+                </td>
+              </tr>
+            }
+            @if (requests.length === 0) {
+              <tr><td colspan="6" class="text-center text-muted">No requests.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- Manage Managers -->
+  @if (activeTab === 'managers') {
+    <div class="row">
+      <div class="col-md-5">
+        <div class="card p-3 mb-4">
+          <h5>Assign Manager</h5>
+          <form (ngSubmit)="addManager()">
+            <div class="mb-3">
+              <label class="form-label">Location</label>
+              <select class="form-select" [(ngModel)]="addManagerForm.locationId" name="locationId" required>
+                <option value="">Select location...</option>
+                @for (loc of locations; track loc.id) {
+                  <option [value]="loc.id">{{ loc.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">User</label>
+              <select class="form-select" [(ngModel)]="addManagerForm.userId" name="userId" required>
+                <option value="">Select user...</option>
+                @for (user of users; track user.id) {
+                  <option [value]="user.id">{{ user.firstName }} {{ user.lastName }} ({{ user.email }})</option>
+                }
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Assign Manager</button>
+          </form>
+        </div>
+      </div>
+      <div class="col-md-7">
+        <div class="card">
+          <div class="card-header">Current Managers by Location</div>
+          <div class="table-responsive">
+            <table class="table mb-0">
+              <thead class="table-light"><tr><th>Location</th><th>Manager</th><th>Action</th></tr></thead>
+              <tbody>
+                @for (loc of locations; track loc.id) {
+                  @for (manager of loc.managers; track manager.id) {
+                    <tr>
+                      <td>{{ loc.name }}</td>
+                      <td>{{ manager.firstName }} {{ manager.lastName }}</td>
+                      <td>
+                        <button class="btn btn-sm btn-outline-danger" (click)="removeManager(loc.id, manager.id)">Remove</button>
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- All Users -->
+  @if (activeTab === 'users') {
+    <div class="card">
+      <div class="card-header">All Users</div>
+      <div class="table-responsive">
+        <table class="table mb-0">
+          <thead class="table-light"><tr><th>Name</th><th>Email</th><th>Username</th><th>Role</th></tr></thead>
+          <tbody>
+            @for (user of users; track user.id) {
+              <tr>
+                <td>{{ user.firstName }} {{ user.lastName }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.username }}</td>
+                <td>
+                  <span class="badge"
+                    [class.bg-danger]="user.role === 'ROLE_ADMIN'"
+                    [class.bg-primary]="user.role === 'ROLE_MANAGER'"
+                    [class.bg-secondary]="user.role === 'ROLE_USER'">
+                    {{ user.role?.replace('ROLE_', '') }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>

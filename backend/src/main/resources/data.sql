@@ -1,0 +1,5 @@
+-- This file is used for initial data population if needed.
+-- The admin user is created automatically via @PostConstruct in AuthService:
+--   email: admin@ues.com
+--   password: admin123
+--   role: ROLE_ADMIN

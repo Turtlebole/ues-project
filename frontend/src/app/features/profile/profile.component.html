@@ -1,0 +1,132 @@
+<div class="container mt-4">
+  @if (profile) {
+    <div class="row">
+      <div class="col-md-3 text-center mb-4">
+        @if (profile.profileImage) {
+          <img [src]="getImageUrl(profile.profileImage)" class="rounded-circle mb-3" style="width:120px;height:120px;object-fit:cover" alt="Profile">
+        } @else {
+          <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto mb-3"
+               style="width:120px;height:120px;">
+            <i class="bi bi-person-fill text-white fs-1"></i>
+          </div>
+        }
+        <h4>{{ profile.firstName }} {{ profile.lastName }}</h4>
+        <p class="text-muted">&#64;{{ profile.username }}</p>
+        <span class="badge" [class.bg-danger]="profile.role === 'ROLE_ADMIN'" [class.bg-primary]="profile.role === 'ROLE_MANAGER'" [class.bg-secondary]="profile.role === 'ROLE_USER'">
+          {{ profile.role?.replace('ROLE_', '') }}
+        </span>
+      </div>
+
+      <div class="col-md-9">
+        <ul class="nav nav-tabs mb-3">
+          <li class="nav-item">
+            <button class="nav-link" [class.active]="activeTab === 'info'" (click)="activeTab = 'info'">Profile Info</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" [class.active]="activeTab === 'password'" (click)="activeTab = 'password'">Change Password</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" [class.active]="activeTab === 'reviews'" (click)="activeTab = 'reviews'">My Reviews ({{ profile.reviews?.length || 0 }})</button>
+          </li>
+          @if (profile.managedLocations?.length > 0) {
+            <li class="nav-item">
+              <button class="nav-link" [class.active]="activeTab === 'locations'" (click)="activeTab = 'locations'">Managed Locations ({{ profile.managedLocations?.length || 0 }})</button>
+            </li>
+          }
+        </ul>
+
+        <!-- Profile Info Tab -->
+        @if (activeTab === 'info') {
+          <div class="card p-4">
+            @if (error) { <div class="alert alert-danger">{{ error }}</div> }
+            @if (success) { <div class="alert alert-success">{{ success }}</div> }
+            <form (ngSubmit)="updateProfile()">
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">First Name</label>
+                  <input type="text" class="form-control" [(ngModel)]="editForm.firstName" name="firstName" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Last Name</label>
+                  <input type="text" class="form-control" [(ngModel)]="editForm.lastName" name="lastName" required>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input type="text" class="form-control" [value]="profile.email" disabled>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Profile Picture</label>
+                <input type="file" class="form-control" (change)="onFileChange($event)" accept="image/*">
+              </div>
+              <button type="submit" class="btn btn-primary" [disabled]="loading">
+                @if (loading) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                Update Profile
+              </button>
+            </form>
+          </div>
+        }
+
+        <!-- Password Tab -->
+        @if (activeTab === 'password') {
+          <div class="card p-4">
+            @if (pwError) { <div class="alert alert-danger">{{ pwError }}</div> }
+            @if (pwSuccess) { <div class="alert alert-success">{{ pwSuccess }}</div> }
+            <form (ngSubmit)="changePassword()">
+              <div class="mb-3">
+                <label class="form-label">Current Password</label>
+                <input type="password" class="form-control" [(ngModel)]="passwordForm.currentPassword" name="currentPassword" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">New Password</label>
+                <input type="password" class="form-control" [(ngModel)]="passwordForm.newPassword" name="newPassword" required minlength="6">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Confirm New Password</label>
+                <input type="password" class="form-control" [(ngModel)]="passwordForm.confirmNewPassword" name="confirmNewPassword" required>
+              </div>
+              <button type="submit" class="btn btn-primary">Change Password</button>
+            </form>
+          </div>
+        }
+
+        <!-- My Reviews Tab -->
+        @if (activeTab === 'reviews') {
+          <div>
+            @if (profile.reviews?.length === 0) {
+              <p class="text-muted">No reviews yet.</p>
+            }
+            @for (review of profile.reviews; track review.id) {
+              <div class="card review-card mb-2 p-3">
+                <p class="fw-bold mb-1">{{ review.eventName }} at location #{{ review.locationId }}</p>
+                @if (review.comment) { <p>{{ review.comment }}</p> }
+                @if (review.rate?.overallRating) {
+                  <span class="badge bg-primary">Overall: {{ review.rate.overallRating }}/10</span>
+                }
+                <p class="text-muted small mt-1 mb-0">{{ review.createdAt | date:'mediumDate' }}</p>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Managed Locations Tab -->
+        @if (activeTab === 'locations') {
+          <div class="row g-3">
+            @for (loc of profile.managedLocations; track loc.id) {
+              <div class="col-md-6">
+                <div class="card p-3">
+                  <h6>{{ loc.name }}</h6>
+                  <p class="text-muted small">{{ loc.address }}</p>
+                  <div class="d-flex gap-2">
+                    <a [routerLink]="['/locations', loc.id]" class="btn btn-sm btn-outline-primary">View</a>
+                    <a [routerLink]="['/analytics', loc.id]" class="btn btn-sm btn-outline-info">Analytics</a>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

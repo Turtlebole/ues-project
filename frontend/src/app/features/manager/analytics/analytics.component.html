@@ -1,0 +1,139 @@
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-bar-chart-fill me-2 text-info"></i>Analytics: {{ location?.name }}</h2>
+    <a [routerLink]="['/locations', locationId]" class="btn btn-outline-secondary btn-sm">Back to Location</a>
+  </div>
+
+  <!-- Period selector -->
+  <div class="card p-3 mb-4">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label">Period</label>
+        <select class="form-select" [(ngModel)]="period">
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="yearly">Yearly</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      @if (period === 'custom') {
+        <div class="col-md-2">
+          <label class="form-label">From</label>
+          <input type="date" class="form-control" [(ngModel)]="customStart">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">To</label>
+          <input type="date" class="form-control" [(ngModel)]="customEnd">
+        </div>
+      }
+      <div class="col-md-2">
+        <button class="btn btn-primary" (click)="loadAnalytics()">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  @if (loading) {
+    <div class="text-center py-5"><span class="spinner-border text-primary"></span></div>
+  }
+
+  @if (error) { <div class="alert alert-danger">{{ error }}</div> }
+
+  @if (analytics && !loading) {
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-2">
+        <div class="card text-center p-3 bg-primary text-white">
+          <h2>{{ analytics.totalEvents }}</h2>
+          <p class="mb-0">Total Events</p>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="card text-center p-3 bg-purple text-white" style="background:#6610f2">
+          <h2>{{ analytics.regularEvents }}</h2>
+          <p class="mb-0">Regular</p>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="card text-center p-3 bg-secondary text-white">
+          <h2>{{ analytics.irregularEvents }}</h2>
+          <p class="mb-0">Irregular</p>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="card text-center p-3 bg-success text-white">
+          <h2>{{ analytics.freeEvents }}</h2>
+          <p class="mb-0">Free</p>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="card text-center p-3 bg-info text-white">
+          <h2>{{ analytics.paidEvents }}</h2>
+          <p class="mb-0">Paid</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-4">
+        <div class="card p-3">
+          <h6 class="text-center">Regular vs Irregular</h6>
+          <canvas #eventTypeChart></canvas>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card p-3">
+          <h6 class="text-center">Free vs Paid</h6>
+          <canvas #pricingChart></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Rated Locations -->
+    @if (analytics.topRatedLocations?.length > 0) {
+      <div class="card mb-4">
+        <div class="card-header"><i class="bi bi-trophy me-2"></i>Top Rated Locations</div>
+        <div class="table-responsive">
+          <table class="table mb-0">
+            <thead class="table-light"><tr><th>#</th><th>Location</th><th>Rating</th></tr></thead>
+            <tbody>
+              @for (loc of analytics.topRatedLocations; track loc.id; let i = $index) {
+                <tr>
+                  <td>{{ i + 1 }}</td>
+                  <td>{{ loc.name }}</td>
+                  <td><span class="rating-badge">{{ loc.averageRating?.toFixed(1) || 'N/A' }}</span></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+    <!-- Recent Reviews from Most Popular Location -->
+    @if (analytics.recentReviews?.length > 0) {
+      <div class="card">
+        <div class="card-header"><i class="bi bi-chat-quote me-2"></i>Recent Reviews (Most Popular Location)</div>
+        <div class="card-body">
+          <div class="row g-3">
+            @for (review of analytics.recentReviews; track review.id) {
+              <div class="col-md-4">
+                <div class="card review-card p-3">
+                  <p class="fw-bold mb-1">{{ review.userFirstName }} {{ review.userLastName }}</p>
+                  <p class="text-muted small mb-1">{{ review.eventName }}</p>
+                  @if (review.comment) { <p class="mb-1">{{ review.comment }}</p> }
+                  @if (review.rate?.overallRating) {
+                    <span class="badge bg-primary">Overall: {{ review.rate.overallRating }}/10</span>
+                  }
+                  <p class="text-muted small mt-1 mb-0">{{ review.createdAt | date:'mediumDate' }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  }
+</div>
