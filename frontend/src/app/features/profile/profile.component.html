@@ -1,13 +1,13 @@
-<div class="container mt-4">
-  @if (profile) {
+<div class="container py-5">
+  @if (profile(); as profile) {
     <div class="row">
       <div class="col-md-3 text-center mb-4">
         @if (profile.profileImage) {
           <img [src]="getImageUrl(profile.profileImage)" class="rounded-circle mb-3" style="width:120px;height:120px;object-fit:cover" alt="Profile">
         } @else {
-          <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto mb-3"
-               style="width:120px;height:120px;">
-            <i class="bi bi-person-fill text-white fs-1"></i>
+          <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
+               style="width:120px;height:120px;background:var(--bg-soft);font-size:2.2rem;font-weight:800;color:var(--muted);">
+            {{ profile.firstName?.charAt(0) }}{{ profile.lastName?.charAt(0) }}
           </div>
         }
         <h4>{{ profile.firstName }} {{ profile.lastName }}</h4>
@@ -35,11 +35,8 @@
           }
         </ul>
 
-        <!-- Profile Info Tab -->
         @if (activeTab === 'info') {
           <div class="card p-4">
-            @if (error) { <div class="alert alert-danger">{{ error }}</div> }
-            @if (success) { <div class="alert alert-success">{{ success }}</div> }
             <form (ngSubmit)="updateProfile()">
               <div class="row g-3 mb-3">
                 <div class="col-md-6">
@@ -59,19 +56,16 @@
                 <label class="form-label">Profile Picture</label>
                 <input type="file" class="form-control" (change)="onFileChange($event)" accept="image/*">
               </div>
-              <button type="submit" class="btn btn-primary" [disabled]="loading">
-                @if (loading) { <span class="spinner-border spinner-border-sm me-1"></span> }
+              <button type="submit" class="btn btn-primary" [disabled]="loading()">
+                @if (loading()) { <span class="spinner-border spinner-border-sm me-1"></span> }
                 Update Profile
               </button>
             </form>
           </div>
         }
 
-        <!-- Password Tab -->
         @if (activeTab === 'password') {
           <div class="card p-4">
-            @if (pwError) { <div class="alert alert-danger">{{ pwError }}</div> }
-            @if (pwSuccess) { <div class="alert alert-success">{{ pwSuccess }}</div> }
             <form (ngSubmit)="changePassword()">
               <div class="mb-3">
                 <label class="form-label">Current Password</label>
@@ -90,7 +84,6 @@
           </div>
         }
 
-        <!-- My Reviews Tab -->
         @if (activeTab === 'reviews') {
           <div>
             @if (profile.reviews?.length === 0) {
@@ -109,7 +102,6 @@
           </div>
         }
 
-        <!-- Managed Locations Tab -->
         @if (activeTab === 'locations') {
           <div class="row g-3">
             @for (loc of profile.managedLocations; track loc.id) {
@@ -128,5 +120,7 @@
         }
       </div>
     </div>
+  } @else {
+    <div class="text-center py-5"><span class="spinner-border"></span></div>
   }
 </div>

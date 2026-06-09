@@ -12,8 +12,6 @@ import com.ues.repository.AccountRequestRepository;
 import com.ues.repository.LocationRepository;
 import com.ues.repository.ManagesRepository;
 import com.ues.repository.UserRepository;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,8 +20,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class AdminService {
-
-    private static final Logger logger = LogManager.getLogger(AdminService.class);
 
     private final AccountRequestRepository accountRequestRepository;
     private final UserRepository userRepository;
@@ -39,6 +35,7 @@ public class AdminService {
         this.accountRequestRepository = accountRequestRepository;
         this.userRepository = userRepository;
         this.locationRepository = locationRepository;
+
         this.managesRepository = managesRepository;
         this.emailService = emailService;
     }
@@ -77,7 +74,6 @@ public class AdminService {
         accountRequestRepository.save(request);
 
         emailService.sendRegistrationApproved(request.getEmail(), request.getFirstName());
-        logger.info("Registration request approved for: {}", request.getEmail());
     }
 
     @Transactional
@@ -93,7 +89,6 @@ public class AdminService {
         accountRequestRepository.save(request);
 
         emailService.sendRegistrationRejected(request.getEmail(), request.getFirstName());
-        logger.info("Registration request rejected for: {}", request.getEmail());
     }
 
     @Transactional
@@ -114,8 +109,6 @@ public class AdminService {
             user.setRole(UserRole.ROLE_MANAGER);
             userRepository.save(user);
         }
-
-        logger.info("User {} assigned as manager of location {}", userId, locationId);
     }
 
     @Transactional
@@ -130,13 +123,10 @@ public class AdminService {
 
         managesRepository.delete(manages);
 
-        // If user manages no other locations, downgrade to regular user
         if (managesRepository.findByUser(user).isEmpty() && user.getRole() != UserRole.ROLE_ADMIN) {
             user.setRole(UserRole.ROLE_USER);
             userRepository.save(user);
         }
-
-        logger.info("User {} removed as manager of location {}", userId, locationId);
     }
 
     public List<UserDTO> getAllUsers() {

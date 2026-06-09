@@ -5,8 +5,6 @@ import com.ues.dto.ReviewDTO;
 import com.ues.dto.UserDTO;
 import com.ues.model.*;
 import com.ues.repository.*;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,8 +17,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class LocationService {
-
-    private static final Logger logger = LogManager.getLogger(LocationService.class);
 
     private final LocationRepository locationRepository;
     private final ManagesRepository managesRepository;
@@ -41,7 +37,11 @@ public class LocationService {
     }
 
     public List<LocationDTO> searchLocations(String name, String address, String type) {
-        List<Location> locations = locationRepository.searchLocations(name, address, type);
+        List<Location> locations = locationRepository.searchLocations(
+            name != null ? name : "",
+            address != null ? address : "",
+            type != null ? type : ""
+        );
         return locations.stream().map(this::toDTO).collect(Collectors.toList());
     }
 
@@ -63,7 +63,6 @@ public class LocationService {
                 .image(imageName)
                 .build();
         location = locationRepository.save(location);
-        logger.info("Location created: {}", name);
         return toDTO(location);
     }
 
@@ -80,7 +79,6 @@ public class LocationService {
             location.setImage(fileStorageService.storeFile(image));
         }
         location = locationRepository.save(location);
-        logger.info("Location updated: {}", id);
         return toDTO(location);
     }
 
@@ -90,7 +88,6 @@ public class LocationService {
                 .orElseThrow(() -> new RuntimeException("Location not found"));
         fileStorageService.deleteFile(location.getImage());
         locationRepository.delete(location);
-        logger.info("Location deleted: {}", id);
     }
 
     public List<LocationDTO> getPopularLocations() {

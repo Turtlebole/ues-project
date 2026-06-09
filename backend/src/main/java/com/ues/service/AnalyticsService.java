@@ -10,8 +10,6 @@ import com.ues.model.Review;
 import com.ues.repository.EventRepository;
 import com.ues.repository.LocationRepository;
 import com.ues.repository.ReviewRepository;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -21,8 +19,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class AnalyticsService {
-
-    private static final Logger logger = LogManager.getLogger(AnalyticsService.class);
 
     private final EventRepository eventRepository;
     private final LocationRepository locationRepository;
@@ -43,7 +39,6 @@ public class AnalyticsService {
     }
 
     public AnalyticsDTO getAnalytics(Long locationId, LocalDateTime start, LocalDateTime end) {
-        logger.info("Generating analytics for location {} from {} to {}", locationId, start, end);
         Location location = locationRepository.findById(locationId)
                 .orElseThrow(() -> new RuntimeException("Location not found"));
 
@@ -56,10 +51,8 @@ public class AnalyticsService {
         dto.setFreeEvents(events.stream().filter(Event::isFree).count());
         dto.setPaidEvents(events.stream().filter(e -> !e.isFree()).count());
 
-        // Top events by review rating
         List<EventDTO> eventDTOs = events.stream().map(eventService::toDTO).collect(Collectors.toList());
 
-        // Top-rated locations
         List<Location> allLocations = locationRepository.findAll();
         List<LocationDTO> topLocations = allLocations.stream()
                 .map(locationService::toDTO)
@@ -69,7 +62,6 @@ public class AnalyticsService {
                 .collect(Collectors.toList());
         dto.setTopRatedLocations(topLocations);
 
-        // Top 3 reviews from most popular location
         List<Location> sortedByRating = allLocations.stream()
                 .sorted((a, b) -> {
                     Double rA = reviewRepository.calculateAverageRatingForLocation(a);

@@ -10,8 +10,6 @@ import com.ues.model.User;
 import com.ues.repository.ManagesRepository;
 import com.ues.repository.ReviewRepository;
 import com.ues.repository.UserRepository;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,8 +20,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class UserService {
-
-    private static final Logger logger = LogManager.getLogger(UserService.class);
 
     private final UserRepository userRepository;
     private final ReviewRepository reviewRepository;
@@ -66,7 +62,6 @@ public class UserService {
             user.setProfileImage(fileStorageService.storeFile(profileImage));
         }
         user = userRepository.save(user);
-        logger.info("Profile updated for user: {}", userId);
         return toDTO(user);
     }
 
@@ -82,7 +77,6 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
         emailService.sendPasswordChanged(user.getEmail(), user.getFirstName());
-        logger.info("Password changed for user: {}", userId);
     }
 
     public UserDTO toDTO(User user) {

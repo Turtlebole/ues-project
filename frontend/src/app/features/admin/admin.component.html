@@ -1,15 +1,13 @@
-<div class="container mt-4">
-  <h2 class="mb-4"><i class="bi bi-shield-check me-2 text-danger"></i>Admin Dashboard</h2>
-
-  @if (error) { <div class="alert alert-danger alert-dismissible">{{ error }}</div> }
-  @if (success) { <div class="alert alert-success alert-dismissible">{{ success }}</div> }
+<div class="container py-5">
+  <p class="eyebrow mb-1">Control room</p>
+  <h2 class="mb-4">Admin dashboard</h2>
 
   <ul class="nav nav-tabs mb-4">
     <li class="nav-item">
       <button class="nav-link" [class.active]="activeTab === 'requests'" (click)="activeTab = 'requests'">
         Registration Requests
-        @if (pendingRequests.length > 0) {
-          <span class="badge bg-danger ms-1">{{ pendingRequests.length }}</span>
+        @if (pendingRequests().length > 0) {
+          <span class="badge bg-danger ms-1">{{ pendingRequests().length }}</span>
         }
       </button>
     </li>
@@ -21,24 +19,16 @@
     </li>
   </ul>
 
-  <!-- Registration Requests -->
   @if (activeTab === 'requests') {
     <div class="card">
       <div class="card-header">Registration Requests</div>
       <div class="table-responsive">
         <table class="table table-hover mb-0">
           <thead class="table-light">
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Username</th>
-              <th>Date</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
+            <tr><th>Name</th><th>Email</th><th>Username</th><th>Date</th><th>Status</th><th>Actions</th></tr>
           </thead>
           <tbody>
-            @for (req of requests; track req.id) {
+            @for (req of requests(); track req.id) {
               <tr>
                 <td>{{ req.firstName }} {{ req.lastName }}</td>
                 <td>{{ req.email }}</td>
@@ -60,7 +50,7 @@
                 </td>
               </tr>
             }
-            @if (requests.length === 0) {
+            @if (requests().length === 0) {
               <tr><td colspan="6" class="text-center text-muted">No requests.</td></tr>
             }
           </tbody>
@@ -69,7 +59,6 @@
     </div>
   }
 
-  <!-- Manage Managers -->
   @if (activeTab === 'managers') {
     <div class="row">
       <div class="col-md-5">
@@ -80,7 +69,7 @@
               <label class="form-label">Location</label>
               <select class="form-select" [(ngModel)]="addManagerForm.locationId" name="locationId" required>
                 <option value="">Select location...</option>
-                @for (loc of locations; track loc.id) {
+                @for (loc of locations(); track loc.id) {
                   <option [value]="loc.id">{{ loc.name }}</option>
                 }
               </select>
@@ -89,7 +78,7 @@
               <label class="form-label">User</label>
               <select class="form-select" [(ngModel)]="addManagerForm.userId" name="userId" required>
                 <option value="">Select user...</option>
-                @for (user of users; track user.id) {
+                @for (user of users(); track user.id) {
                   <option [value]="user.id">{{ user.firstName }} {{ user.lastName }} ({{ user.email }})</option>
                 }
               </select>
@@ -105,14 +94,12 @@
             <table class="table mb-0">
               <thead class="table-light"><tr><th>Location</th><th>Manager</th><th>Action</th></tr></thead>
               <tbody>
-                @for (loc of locations; track loc.id) {
+                @for (loc of locations(); track loc.id) {
                   @for (manager of loc.managers; track manager.id) {
                     <tr>
                       <td>{{ loc.name }}</td>
                       <td>{{ manager.firstName }} {{ manager.lastName }}</td>
-                      <td>
-                        <button class="btn btn-sm btn-outline-danger" (click)="removeManager(loc.id, manager.id)">Remove</button>
-                      </td>
+                      <td><button class="btn btn-sm btn-outline-danger" (click)="removeManager(loc.id, manager.id)">Remove</button></td>
                     </tr>
                   }
                 }
@@ -124,7 +111,6 @@
     </div>
   }
 
-  <!-- All Users -->
   @if (activeTab === 'users') {
     <div class="card">
       <div class="card-header">All Users</div>
@@ -132,7 +118,7 @@
         <table class="table mb-0">
           <thead class="table-light"><tr><th>Name</th><th>Email</th><th>Username</th><th>Role</th></tr></thead>
           <tbody>
-            @for (user of users; track user.id) {
+            @for (user of users(); track user.id) {
               <tr>
                 <td>{{ user.firstName }} {{ user.lastName }}</td>
                 <td>{{ user.email }}</td>

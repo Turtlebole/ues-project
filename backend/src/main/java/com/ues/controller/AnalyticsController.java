@@ -2,8 +2,6 @@ package com.ues.controller;
 
 import com.ues.dto.AnalyticsDTO;
 import com.ues.service.AnalyticsService;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,14 +10,11 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.temporal.TemporalAdjusters;
 
 @RestController
 @RequestMapping("/api/analytics")
 @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
 public class AnalyticsController {
-
-    private static final Logger logger = LogManager.getLogger(AnalyticsController.class);
 
     private final AnalyticsService analyticsService;
 
@@ -48,7 +43,6 @@ public class AnalyticsController {
             };
         }
 
-        logger.info("Analytics request for location {} period {} to {}", locationId, start, end);
         return ResponseEntity.ok(analyticsService.getAnalytics(locationId, start, end));
     }
 }

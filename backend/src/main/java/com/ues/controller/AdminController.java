@@ -3,8 +3,6 @@ package com.ues.controller;
 import com.ues.dto.AccountRequestDTO;
 import com.ues.dto.UserDTO;
 import com.ues.service.AdminService;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -16,8 +14,6 @@ import java.util.Map;
 @RequestMapping("/api/admin")
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
-
-    private static final Logger logger = LogManager.getLogger(AdminController.class);
 
     private final AdminService adminService;
 
@@ -36,17 +32,15 @@ public class AdminController {
     }
 
     @PostMapping("/requests/{id}/approve")
-    public ResponseEntity<String> approveRequest(@PathVariable Long id) {
-        logger.info("Approving registration request: {}", id);
+    public ResponseEntity<Void> approveRequest(@PathVariable Long id) {
         adminService.approveRequest(id);
-        return ResponseEntity.ok("Request approved");
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/requests/{id}/reject")
-    public ResponseEntity<String> rejectRequest(@PathVariable Long id) {
-        logger.info("Rejecting registration request: {}", id);
+    public ResponseEntity<Void> rejectRequest(@PathVariable Long id) {
         adminService.rejectRequest(id);
-        return ResponseEntity.ok("Request rejected");
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/users")
@@ -55,21 +49,19 @@ public class AdminController {
     }
 
     @PostMapping("/locations/{locationId}/managers")
-    public ResponseEntity<String> addManager(
+    public ResponseEntity<Void> addManager(
             @PathVariable Long locationId,
             @RequestBody Map<String, Long> body) {
         Long userId = body.get("userId");
-        logger.info("Adding manager {} to location {}", userId, locationId);
         adminService.addManager(locationId, userId);
-        return ResponseEntity.ok("Manager added");
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/locations/{locationId}/managers/{userId}")
-    public ResponseEntity<String> removeManager(
+    public ResponseEntity<Void> removeManager(
             @PathVariable Long locationId,
             @PathVariable Long userId) {
-        logger.info("Removing manager {} from location {}", userId, locationId);
         adminService.removeManager(locationId, userId);
-        return ResponseEntity.ok("Manager removed");
+        return ResponseEntity.ok().build();
     }
 }

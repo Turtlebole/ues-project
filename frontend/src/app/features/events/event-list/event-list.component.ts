@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { EventService } from '../../../core/services/event.service';
-import { LocationService } from '../../../core/services/location.service';
+import { BehaviorSubject, map, switchMap } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ApiService } from '../../../core/api/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -12,43 +13,38 @@ import { AuthService } from '../../../core/services/auth.service';
   imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './event-list.component.html'
 })
-export class EventListComponent implements OnInit {
-  events: any[] = [];
-  locations: any[] = [];
+export class EventListComponent {
+  private api = inject(ApiService);
+  authService = inject(AuthService);
+
   filters = { date: '', type: '', locationId: undefined as number | undefined, address: '', maxPrice: undefined as number | undefined };
-  loading = false;
 
-  constructor(
-    public eventService: EventService,
-    public locationService: LocationService,
-    public authService: AuthService
-  ) {}
+  private search$ = new BehaviorSubject<void>(undefined);
 
-  ngOnInit(): void {
-    this.loadEvents();
-    this.locationService.getLocations().subscribe(locs => this.locations = locs);
-  }
+  events = toSignal(
+    this.search$.pipe(
+      switchMap(() => this.api.events.searchEvents({
+        date: this.filters.date || undefined,
+        type: this.filters.type || undefined,
+        locationId: this.filters.locationId,
+        address: this.filters.address || undefined,
+        maxPrice: this.filters.maxPrice,
+      }).pipe(map(r => r.data ?? [])))
+    ),
+    { initialValue: null as any }
+  );
 
-  loadEvents(): void {
-    this.loading = true;
-    this.eventService.searchEvents(
-      this.filters.date || undefined,
-      this.filters.type || undefined,
-      this.filters.locationId,
-      this.filters.address || undefined,
-      this.filters.maxPrice
-    ).subscribe({
-      next: events => { this.events = events; this.loading = false; },
-      error: () => this.loading = false
-    });
-  }
+  locations = toSignal(
+    this.api.locations.getLocations().pipe(map(r => r.data ?? [])),
+    { initialValue: [] as any[] }
+  );
+
+  loadEvents(): void { this.search$.next(); }
 
   resetFilters(): void {
     this.filters = { date: '', type: '', locationId: undefined, address: '', maxPrice: undefined };
-    this.loadEvents();
+    this.search$.next();
   }
 
-  getImageUrl(img: string): string {
-    return this.eventService.getImageUrl(img);
-  }
+  getImageUrl(img: string): string { return this.api.events.getImageUrl(img); }
 }

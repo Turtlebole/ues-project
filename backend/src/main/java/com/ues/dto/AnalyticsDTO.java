@@ -15,4 +15,5 @@ public class AnalyticsDTO {
     private List<EventDTO> lowestRatedEvents;
     private List<LocationDTO> topRatedLocations;
     private List<ReviewDTO> recentReviews;
+
 }

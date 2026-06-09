@@ -1,51 +1,39 @@
-@if (loading) {
-  <div class="text-center py-5"><span class="spinner-border text-primary"></span></div>
-}
-
-@if (location) {
-  <div class="container mt-4">
-    <!-- Location Header -->
-    <div class="row mb-4">
+@if (location(); as location) {
+  <div class="container py-5">
+    <div class="row mb-5">
       <div class="col-md-5">
-        <img [src]="getImageUrl(location.image)" class="w-100 rounded shadow" [alt]="location.name"
-             style="max-height: 350px; object-fit: cover;"
+        <img [src]="getImageUrl(location.image)" class="w-100 rounded" [alt]="location.name"
+             style="max-height: 360px; object-fit: cover; border-radius: var(--radius);"
              onerror="this.src='https://via.placeholder.com/500x350?text=No+Image'">
       </div>
       <div class="col-md-7">
-        <div class="d-flex justify-content-between align-items-start">
+        <div class="d-flex justify-content-between align-items-start gap-3">
           <h1>{{ location.name }}</h1>
-          <span class="rating-badge fs-5">
-            <i class="bi bi-star-fill me-1"></i>
+          <span class="rating-badge fs-6">
             {{ location.averageRating ? location.averageRating.toFixed(1) : 'N/A' }}
           </span>
         </div>
-        <p><i class="bi bi-geo-alt me-2 text-primary"></i>{{ location.address }}</p>
-        <span class="badge bg-secondary mb-2">{{ location.type }}</span>
+        <p class="text-muted mb-2">{{ location.address }}</p>
+        <span class="badge bg-secondary mb-3">{{ location.type }}</span>
         <p>{{ location.description }}</p>
 
         @if (location.managers?.length > 0) {
-          <p class="text-muted small">Managers: {{ location.managers.map((m: any) => m.firstName + ' ' + m.lastName).join(', ') }}</p>
+          <p class="text-muted small">Managers: {{ managerNames() }}</p>
         }
 
         <div class="d-flex gap-2 mt-3">
           @if (isManager()) {
-            <a [routerLink]="['/locations', location.id, 'edit']" class="btn btn-outline-secondary btn-sm">
-              <i class="bi bi-pencil me-1"></i>Edit
-            </a>
-            <a [routerLink]="['/events/new']" [queryParams]="{locationId: location.id}" class="btn btn-outline-primary btn-sm">
-              <i class="bi bi-plus me-1"></i>Add Event
-            </a>
-            <a [routerLink]="['/analytics', location.id]" class="btn btn-outline-info btn-sm">
-              <i class="bi bi-bar-chart me-1"></i>Analytics
-            </a>
+            <a [routerLink]="['/locations', location.id, 'edit']" class="btn btn-outline-secondary btn-sm">Edit</a>
+            <a [routerLink]="['/events/new']" [queryParams]="{locationId: location.id}" class="btn btn-outline-primary btn-sm">Add event</a>
+            <a [routerLink]="['/analytics', location.id]" class="btn btn-outline-info btn-sm">Analytics</a>
           }
         </div>
       </div>
     </div>
 
-    <!-- Upcoming Events -->
     <section class="mb-5">
-      <h3><i class="bi bi-calendar3 me-2 text-primary"></i>Upcoming Events</h3>
+      <p class="eyebrow mb-1">Coming up</p>
+      <h3 class="mb-3">Upcoming events</h3>
       @if (location.upcomingEvents?.length === 0) {
         <p class="text-muted">No upcoming events.</p>
       }
@@ -57,7 +45,7 @@
                    onerror="this.src='https://via.placeholder.com/300x160?text=Event'">
               <div class="card-body p-3">
                 <h6 class="fw-bold">{{ event.name }}</h6>
-                <p class="small text-muted mb-1"><i class="bi bi-clock me-1"></i>{{ event.date | date:'medium' }}</p>
+                <p class="small text-muted mb-1">{{ event.date | date:'medium' }}</p>
                 <div class="d-flex gap-1">
                   @if (event.free) { <span class="badge badge-free">Free</span> }
                   @else { <span class="badge badge-paid">{{ event.price | currency:'EUR' }}</span> }
@@ -75,10 +63,12 @@
       </div>
     </section>
 
-    <!-- Reviews Section -->
     <section>
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3><i class="bi bi-chat-quote me-2 text-info"></i>Reviews</h3>
+        <div>
+          <p class="eyebrow mb-1">What people say</p>
+          <h3 class="mb-0">Reviews</h3>
+        </div>
         <div class="d-flex gap-2 align-items-center">
           <select class="form-select form-select-sm" [(ngModel)]="sortBy" (change)="onSortChange()">
             <option value="date">Sort by Date</option>
@@ -89,24 +79,20 @@
             <option value="asc">Ascending</option>
           </select>
           @if (authService.isLoggedIn() && !authService.isAdmin() && !isManager()) {
-            <button class="btn btn-primary btn-sm" (click)="showReviewForm = !showReviewForm">
-              <i class="bi bi-plus me-1"></i>Write Review
-            </button>
+            <button class="btn btn-primary btn-sm" (click)="showReviewForm = !showReviewForm">Write review</button>
           }
         </div>
       </div>
 
-      <!-- Review Form -->
       @if (showReviewForm) {
-        <div class="card p-3 mb-4 border-primary">
-          <h5>Write a Review</h5>
-          @if (reviewError) { <div class="alert alert-danger">{{ reviewError }}</div> }
+        <div class="card p-3 mb-4">
+          <h5>Write a review</h5>
           <form (ngSubmit)="submitReview()">
             <div class="mb-3">
               <label class="form-label">Event *</label>
               <select class="form-select" [(ngModel)]="reviewForm.eventId" name="eventId" required>
                 <option [ngValue]="null">Select event...</option>
-                @for (event of pastRegularEvents; track event.id) {
+                @for (event of pastRegularEvents(); track event.id) {
                   <option [ngValue]="event.id">{{ event.name }} ({{ event.date | date:'mediumDate' }})</option>
                 }
               </select>
@@ -134,15 +120,14 @@
               </div>
             </div>
             <div class="d-flex gap-2">
-              <button type="submit" class="btn btn-primary btn-sm">Submit Review</button>
+              <button type="submit" class="btn btn-primary btn-sm">Submit review</button>
               <button type="button" class="btn btn-outline-secondary btn-sm" (click)="showReviewForm = false">Cancel</button>
             </div>
           </form>
         </div>
       }
 
-      <!-- Reviews List -->
-      @for (review of reviews; track review.id) {
+      @for (review of reviews(); track review.id) {
         @if (!review.hidden || isManager()) {
           <div class="card review-card mb-3 p-3" [class.opacity-50]="review.hidden">
             <div class="d-flex justify-content-between">
@@ -154,11 +139,9 @@
               @if (isManager()) {
                 <div class="d-flex gap-1">
                   <button class="btn btn-sm btn-outline-warning" (click)="hideReview(review.id)">
-                    <i class="bi bi-eye-slash"></i>
+                    {{ review.hidden ? 'Unhide' : 'Hide' }}
                   </button>
-                  <button class="btn btn-sm btn-outline-danger" (click)="deleteReview(review.id)">
-                    <i class="bi bi-trash"></i>
-                  </button>
+                  <button class="btn btn-sm btn-outline-danger" (click)="deleteReview(review.id)">Delete</button>
                 </div>
               }
             </div>
@@ -168,22 +151,13 @@
             @if (review.comment) { <p class="mb-2">{{ review.comment }}</p> }
             @if (review.rate) {
               <div class="d-flex flex-wrap gap-2 mb-2">
-                @if (review.rate.performanceRating) {
-                  <span class="badge bg-light text-dark border">Performance: {{ review.rate.performanceRating }}/10</span>
-                }
-                @if (review.rate.soundLightRating) {
-                  <span class="badge bg-light text-dark border">Sound/Light: {{ review.rate.soundLightRating }}/10</span>
-                }
-                @if (review.rate.spaceRating) {
-                  <span class="badge bg-light text-dark border">Space: {{ review.rate.spaceRating }}/10</span>
-                }
-                @if (review.rate.overallRating) {
-                  <span class="badge bg-light text-dark border">Overall: {{ review.rate.overallRating }}/10</span>
-                }
+                @if (review.rate.performanceRating) { <span class="badge bg-light">Performance: {{ review.rate.performanceRating }}/10</span> }
+                @if (review.rate.soundLightRating) { <span class="badge bg-light">Sound/Light: {{ review.rate.soundLightRating }}/10</span> }
+                @if (review.rate.spaceRating) { <span class="badge bg-light">Space: {{ review.rate.spaceRating }}/10</span> }
+                @if (review.rate.overallRating) { <span class="badge bg-light">Overall: {{ review.rate.overallRating }}/10</span> }
               </div>
             }
 
-            <!-- Comments -->
             @if (review.comments?.length > 0) {
               <div class="comment-thread">
                 @for (comment of review.comments; track comment.id) {
@@ -201,7 +175,6 @@
                         <button class="btn btn-primary btn-sm" (click)="addReply(review.id, comment.id)">Send</button>
                       </div>
                     }
-                    <!-- Nested replies -->
                     @if (comment.replies?.length > 0) {
                       <div class="comment-thread">
                         @for (reply of comment.replies; track reply.id) {
@@ -220,7 +193,6 @@
               </div>
             }
 
-            <!-- Manager comment form -->
             @if (isManager()) {
               <div class="d-flex gap-2 mt-2">
                 <input type="text" class="form-control form-control-sm" [(ngModel)]="commentText[review.id]" placeholder="Add manager response...">
@@ -232,4 +204,6 @@
       }
     </section>
   </div>
+} @else {
+  <div class="text-center py-5"><span class="spinner-border"></span></div>
 }

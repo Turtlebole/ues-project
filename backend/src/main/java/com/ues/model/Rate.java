@@ -22,7 +22,6 @@ public class Rate {
     @JoinColumn(name = "review_id", nullable = false)
     private Review review;
 
-    // All ratings optional (1-10)
     private Integer performanceRating;
     private Integer soundLightRating;
     private Integer spaceRating;

@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-register',
@@ -13,10 +14,8 @@ import { AuthService } from '../../../core/services/auth.service';
       <div class="row justify-content-center">
         <div class="col-md-6">
           <div class="card p-4 shadow">
-            <h2 class="text-center mb-4"><i class="bi bi-person-plus me-2"></i>Register</h2>
-            @if (error) { <div class="alert alert-danger">{{ error }}</div> }
-            @if (success) { <div class="alert alert-success">{{ success }}</div> }
-            <form (ngSubmit)="onRegister()" #regForm="ngForm">
+            <h2 class="text-center mb-4">Join the flow</h2>
+            <form (ngSubmit)="onRegister()">
               <div class="row">
                 <div class="col-md-6 mb-3">
                   <label class="form-label">First Name</label>
@@ -39,8 +38,8 @@ import { AuthService } from '../../../core/services/auth.service';
                 <label class="form-label">Password</label>
                 <input type="password" class="form-control" [(ngModel)]="form.password" name="password" required minlength="6">
               </div>
-              <button type="submit" class="btn btn-primary w-100" [disabled]="loading">
-                @if (loading) { <span class="spinner-border spinner-border-sm me-2"></span> }
+              <button type="submit" class="btn btn-primary w-100" [disabled]="loading()">
+                @if (loading()) { <span class="spinner-border spinner-border-sm me-2"></span> }
                 Submit Registration Request
               </button>
             </form>
@@ -54,25 +53,24 @@ import { AuthService } from '../../../core/services/auth.service';
   `
 })
 export class RegisterComponent {
-  form = { firstName: '', lastName: '', username: '', email: '', password: '' };
-  error = '';
-  success = '';
-  loading = false;
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private toast = inject(ToastService);
 
-  constructor(private authService: AuthService, private router: Router) {}
+  form = { firstName: '', lastName: '', username: '', email: '', password: '' };
+  loading = signal(false);
 
   onRegister(): void {
-    this.loading = true;
-    this.error = '';
+    this.loading.set(true);
     this.authService.register(this.form).subscribe({
-      next: msg => {
-        this.success = msg;
-        this.loading = false;
+      next: () => {
+        this.toast.success('Registration request submitted. Please wait for admin approval.');
+        this.loading.set(false);
         setTimeout(() => this.router.navigate(['/login']), 3000);
       },
       error: err => {
-        this.error = err.error || 'Registration failed';
-        this.loading = false;
+        this.toast.error(err.error?.message || 'Registration failed');
+        this.loading.set(false);
       }
     });
   }

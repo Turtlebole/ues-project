@@ -1,43 +1,34 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { EventService } from '../../core/services/event.service';
-import { LocationService } from '../../core/services/location.service';
-import { ReviewService } from '../../core/services/review.service';
+import { map } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ApiService } from '../../core/api/api.service';
+import { SpinnerComponent } from '../../shared/spinner/spinner.component';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, SpinnerComponent],
   templateUrl: './home.component.html'
 })
-export class HomeComponent implements OnInit {
-  todayEvents: any[] = [];
-  popularLocations: any[] = [];
-  recentReviews: any[] = [];
+export class HomeComponent {
+  private api = inject(ApiService);
 
-  constructor(
-    private eventService: EventService,
-    private locationService: LocationService,
-    private reviewService: ReviewService
-  ) {}
+  todayEvents = toSignal(
+    this.api.events.getTodayEvents().pipe(map(r => r.data ?? [])),
+    { initialValue: null as any }
+  );
+  popularLocations = toSignal(
+    this.api.locations.getPopularLocations().pipe(map(r => r.data ?? [])),
+    { initialValue: null as any }
+  );
+  recentReviews = toSignal(
+    this.api.reviews.getRecentFromPopularLocation().pipe(map(r => r.data ?? [])),
+    { initialValue: null as any }
+  );
 
-  ngOnInit(): void {
-    this.eventService.getTodayEvents().subscribe(events => this.todayEvents = events);
-    this.locationService.getPopularLocations().subscribe(locs => this.popularLocations = locs);
-    this.reviewService.getRecentFromPopularLocation().subscribe(reviews => this.recentReviews = reviews);
-  }
-
-  getImageUrl(img: string): string {
-    return this.locationService.getImageUrl(img);
-  }
-
-  getEventImageUrl(img: string): string {
-    return this.eventService.getImageUrl(img);
-  }
-
-  getStars(rating: number): string {
-    if (!rating) return 'N/A';
-    return rating.toFixed(1);
-  }
+  getImageUrl(img: string): string { return this.api.locations.getImageUrl(img); }
+  getEventImageUrl(img: string): string { return this.api.events.getImageUrl(img); }
+  getStars(rating: number): string { return rating ? rating.toFixed(1) : 'N/A'; }
 }

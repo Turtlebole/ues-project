@@ -1,14 +1,14 @@
-<div class="container mt-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-geo-alt me-2 text-primary"></i>Locations</h2>
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-end mb-4">
+    <div>
+      <p class="eyebrow mb-1">Where it happens</p>
+      <h2 class="mb-0">Venues</h2>
+    </div>
     @if (authService.isAdmin()) {
-      <a routerLink="/locations/new" class="btn btn-primary">
-        <i class="bi bi-plus-lg me-1"></i>Add Location
-      </a>
+      <a routerLink="/locations/new" class="btn btn-primary">Add venue</a>
     }
   </div>
 
-  <!-- Search bar -->
   <div class="card p-3 mb-4">
     <div class="row g-2">
       <div class="col-md-4">
@@ -17,47 +17,41 @@
       <div class="col-md-4">
         <input type="text" class="form-control" placeholder="Search by address..." [(ngModel)]="search.address">
       </div>
-      <div class="col-md-3">
+      <div class="col-md-2">
         <input type="text" class="form-control" placeholder="Filter by type..." [(ngModel)]="search.type">
       </div>
-      <div class="col-md-1">
-        <button class="btn btn-primary w-100" (click)="loadLocations()">
-          <i class="bi bi-search"></i>
-        </button>
+      <div class="col-md-2">
+        <button class="btn btn-primary w-100" (click)="loadLocations()">Search</button>
       </div>
     </div>
   </div>
 
-  @if (loading) {
-    <div class="text-center py-5"><span class="spinner-border text-primary"></span></div>
-  }
-
-  @if (!loading && locations.length === 0) {
-    <div class="alert alert-info text-center">No locations found.</div>
-  }
-
-  <div class="row g-4">
-    @for (loc of locations; track loc.id) {
-      <div class="col-md-4 col-lg-3">
-        <div class="card h-100" [routerLink]="['/locations', loc.id]" style="cursor:pointer">
-          <img [src]="getImageUrl(loc.image)" class="location-image" [alt]="loc.name"
-               onerror="this.src='https://via.placeholder.com/300x200?text=No+Image'">
-          <div class="card-body">
-            <h5 class="card-title">{{ loc.name }}</h5>
-            <p class="text-muted small"><i class="bi bi-geo-alt me-1"></i>{{ loc.address }}</p>
-            <div class="d-flex justify-content-between align-items-center">
-              <span class="badge bg-secondary">{{ loc.type }}</span>
-              <span class="rating-badge">
-                <i class="bi bi-star-fill me-1"></i>
-                {{ loc.averageRating ? loc.averageRating.toFixed(1) : 'N/A' }}
-              </span>
+  @if (locations(); as locations) {
+    @if (locations.length === 0) {
+      <div class="alert alert-info text-center">No venues found.</div>
+    }
+    <div class="row g-4">
+      @for (loc of locations; track loc.id) {
+        <div class="col-md-4 col-lg-3">
+          <div class="card h-100" [routerLink]="['/locations', loc.id]" style="cursor:pointer">
+            <img [src]="getImageUrl(loc.image)" class="location-image" [alt]="loc.name"
+                 onerror="this.src='https://via.placeholder.com/300x200?text=No+Image'">
+            <div class="card-body">
+              <h5 class="card-title">{{ loc.name }}</h5>
+              <p class="text-muted small">{{ loc.address }}</p>
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="badge bg-secondary">{{ loc.type }}</span>
+                <span class="rating-badge">{{ loc.averageRating ? loc.averageRating.toFixed(1) : 'N/A' }}</span>
+              </div>
+            </div>
+            <div class="card-footer bg-transparent">
+              <a [routerLink]="['/locations', loc.id]" class="btn btn-sm btn-outline-primary w-100">View details</a>
             </div>
           </div>
-          <div class="card-footer bg-transparent">
-            <a [routerLink]="['/locations', loc.id]" class="btn btn-sm btn-outline-primary w-100">View Details</a>
-          </div>
         </div>
-      </div>
-    }
-  </div>
+      }
+    </div>
+  } @else {
+    <div class="text-center py-5"><span class="spinner-border"></span></div>
+  }
 </div>

@@ -1,9 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { AdminService } from '../../core/services/admin.service';
-import { LocationService } from '../../core/services/location.service';
+import { BehaviorSubject, map, shareReplay, switchMap } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ApiService } from '../../core/api/api.service';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-admin',
@@ -11,73 +13,79 @@ import { LocationService } from '../../core/services/location.service';
   imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './admin.component.html'
 })
-export class AdminComponent implements OnInit {
-  requests: any[] = [];
-  users: any[] = [];
-  locations: any[] = [];
+export class AdminComponent {
+  private api = inject(ApiService);
+  private toast = inject(ToastService);
+
   activeTab = 'requests';
   addManagerForm = { locationId: '', userId: '' };
-  error = '';
-  success = '';
 
-  constructor(
-    private adminService: AdminService,
-    private locationService: LocationService
-  ) {}
+  private requestsRefresh$ = new BehaviorSubject<void>(undefined);
+  private usersRefresh$ = new BehaviorSubject<void>(undefined);
+  private locationsRefresh$ = new BehaviorSubject<void>(undefined);
 
-  ngOnInit(): void {
-    this.loadRequests();
-    this.loadUsers();
-    this.locationService.getLocations().subscribe(locs => this.locations = locs);
-  }
+  private requests$ = this.requestsRefresh$.pipe(
+    switchMap(() => this.api.admin.getAllRequests().pipe(map(r => r.data ?? []))),
+    shareReplay(1)
+  );
 
-  loadRequests(): void {
-    this.adminService.getAllRequests().subscribe(r => this.requests = r);
-  }
+  requests = toSignal(this.requests$, { initialValue: [] as any[] });
 
-  loadUsers(): void {
-    this.adminService.getAllUsers().subscribe(u => this.users = u);
-  }
+  pendingRequests = toSignal(
+    this.requests$.pipe(map(r => r.filter((x: any) => x.status === 'PENDING'))),
+    { initialValue: [] as any[] }
+  );
+
+  users = toSignal(
+    this.usersRefresh$.pipe(
+      switchMap(() => this.api.admin.getAllUsers().pipe(map(r => r.data ?? []))),
+      shareReplay(1)
+    ),
+    { initialValue: [] as any[] }
+  );
+
+  locations = toSignal(
+    this.locationsRefresh$.pipe(
+      switchMap(() => this.api.locations.getLocations().pipe(map(r => r.data ?? []))),
+      shareReplay(1)
+    ),
+    { initialValue: [] as any[] }
+  );
 
   approve(id: number): void {
-    this.adminService.approveRequest(id).subscribe({
-      next: () => { this.success = 'Request approved'; this.loadRequests(); this.loadUsers(); },
-      error: err => this.error = err.error || 'Failed'
+    this.api.admin.approveRequest(id).subscribe({
+      next: () => {
+        this.toast.success('Request approved');
+        this.requestsRefresh$.next();
+        this.usersRefresh$.next();
+      }
     });
   }
 
   reject(id: number): void {
-    this.adminService.rejectRequest(id).subscribe({
-      next: () => { this.success = 'Request rejected'; this.loadRequests(); },
-      error: err => this.error = err.error || 'Failed'
+    this.api.admin.rejectRequest(id).subscribe({
+      next: () => { this.toast.success('Request rejected'); this.requestsRefresh$.next(); }
     });
   }
 
   addManager(): void {
-    this.error = '';
-    this.adminService.addManager(Number(this.addManagerForm.locationId), Number(this.addManagerForm.userId)).subscribe({
+    this.api.admin.addManager(Number(this.addManagerForm.locationId), Number(this.addManagerForm.userId)).subscribe({
       next: () => {
-        this.success = 'Manager added successfully';
-        this.loadUsers();
-        this.locationService.getLocations().subscribe(locs => this.locations = locs);
-      },
-      error: err => this.error = err.error || 'Failed to add manager'
+        this.toast.success('Manager added successfully');
+        this.usersRefresh$.next();
+        this.locationsRefresh$.next();
+      }
     });
   }
 
   removeManager(locationId: number, userId: number): void {
     if (!confirm('Remove this manager?')) return;
-    this.adminService.removeManager(locationId, userId).subscribe({
+    this.api.admin.removeManager(locationId, userId).subscribe({
       next: () => {
-        this.success = 'Manager removed';
-        this.locationService.getLocations().subscribe(locs => this.locations = locs);
-        this.loadUsers();
-      },
-      error: err => this.error = err.error || 'Failed'
+        this.toast.success('Manager removed');
+        this.locationsRefresh$.next();
+        this.usersRefresh$.next();
+      }
     });
-  }
-
-  get pendingRequests(): any[] {
-    return this.requests.filter(r => r.status === 'PENDING');
   }
 }

@@ -4,8 +4,6 @@ import com.ues.dto.CommentDTO;
 import com.ues.dto.ReviewDTO;
 import com.ues.security.UserDetailsImpl;
 import com.ues.service.ReviewService;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,8 +14,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/reviews")
 public class ReviewController {
-
-    private static final Logger logger = LogManager.getLogger(ReviewController.class);
 
     private final ReviewService reviewService;
 
@@ -42,15 +38,13 @@ public class ReviewController {
         Integer overallRating = body.get("overallRating") != null ?
                 Integer.parseInt(body.get("overallRating").toString()) : null;
 
-        logger.info("Creating review by user {} for location {}", userDetails.getId(), locationId);
         return ResponseEntity.ok(reviewService.createReview(userDetails.getId(), locationId, eventId,
                 comment, performanceRating, soundLightRating, spaceRating, overallRating));
     }
 
-    @PatchMapping("/{id}/hide")
+    @PutMapping("/{id}/hide")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<Void> hideReview(@PathVariable Long id) {
-        logger.info("Toggling hide on review: {}", id);
         reviewService.hideReview(id);
         return ResponseEntity.ok().build();
     }
@@ -58,7 +52,6 @@ public class ReviewController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<Void> deleteReview(@PathVariable Long id) {
-        logger.info("Deleting review: {}", id);
         reviewService.deleteReview(id);
         return ResponseEntity.noContent().build();
     }
@@ -72,7 +65,6 @@ public class ReviewController {
         String text = (String) body.get("text");
         Long parentCommentId = body.get("parentCommentId") != null ?
                 Long.parseLong(body.get("parentCommentId").toString()) : null;
-        logger.info("Adding comment to review {} by user {}", id, userDetails.getId());
         return ResponseEntity.ok(reviewService.addComment(id, userDetails.getId(), text, parentCommentId));
     }
 

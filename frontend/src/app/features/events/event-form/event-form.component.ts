@@ -1,10 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { EventService } from '../../../core/services/event.service';
-import { LocationService } from '../../../core/services/location.service';
-import { AuthService } from '../../../core/services/auth.service';
+import { finalize, map } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ApiService } from '../../../core/api/api.service';
+import { ToastService } from '../../../core/services/toast.service';
+import { MultiPart } from '../../../core/api/rest.model';
 
 @Component({
   selector: 'app-event-form',
@@ -16,8 +18,6 @@ import { AuthService } from '../../../core/services/auth.service';
         <div class="col-md-7">
           <div class="card p-4 shadow">
             <h2>{{ isEdit ? 'Edit Event' : 'Add New Event' }}</h2>
-            @if (error) { <div class="alert alert-danger">{{ error }}</div> }
-            @if (success) { <div class="alert alert-success">{{ success }}</div> }
             <form (ngSubmit)="onSubmit()">
               <div class="mb-3">
                 <label class="form-label">Event Name *</label>
@@ -27,7 +27,7 @@ import { AuthService } from '../../../core/services/auth.service';
                 <label class="form-label">Location *</label>
                 <select class="form-select" [(ngModel)]="form.locationId" name="locationId" required>
                   <option value="">Select location...</option>
-                  @for (loc of locations; track loc.id) {
+                  @for (loc of locations(); track loc.id) {
                     <option [value]="loc.id">{{ loc.name }}</option>
                   }
                 </select>
@@ -63,8 +63,8 @@ import { AuthService } from '../../../core/services/auth.service';
                 <input type="file" class="form-control" (change)="onFileChange($event)" accept="image/*" [required]="!isEdit">
               </div>
               <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary" [disabled]="loading">
-                  @if (loading) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                <button type="submit" class="btn btn-primary" [disabled]="loading()">
+                  @if (loading()) { <span class="spinner-border spinner-border-sm me-1"></span> }
                   {{ isEdit ? 'Update' : 'Create' }} Event
                 </button>
                 <button type="button" class="btn btn-outline-secondary" routerLink="/events">Cancel</button>
@@ -77,33 +77,32 @@ import { AuthService } from '../../../core/services/auth.service';
   `
 })
 export class EventFormComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private api = inject(ApiService);
+  private toast = inject(ToastService);
+
   isEdit = false;
   eventId: number | null = null;
   form: any = { name: '', locationId: '', address: '', type: '', date: '', regular: false, free: false, price: null };
   selectedFile: File | null = null;
-  locations: any[] = [];
-  error = '';
-  success = '';
-  loading = false;
+  loading = signal(false);
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private eventService: EventService,
-    private locationService: LocationService,
-    public authService: AuthService
-  ) {}
+  locations = toSignal(
+    this.api.locations.getLocations().pipe(map(r => r.data ?? [])),
+    { initialValue: [] as any[] }
+  );
 
   ngOnInit(): void {
-    this.locationService.getLocations().subscribe(locs => this.locations = locs);
     const id = this.route.snapshot.paramMap.get('id');
     const locationId = this.route.snapshot.queryParamMap.get('locationId');
     if (locationId) this.form.locationId = locationId;
     if (id) {
       this.isEdit = true;
       this.eventId = Number(id);
-      this.eventService.getEvent(this.eventId).subscribe(e => {
-        this.form = {
+      this.api.events.getEvent(this.eventId).subscribe(r => {
+        const e = r.data;
+        if (e) this.form = {
           name: e.name, locationId: e.locationId, address: e.address, type: e.type,
           date: e.date?.slice(0, 16), regular: e.regular, free: e.free, price: e.price
         };
@@ -117,30 +116,28 @@ export class EventFormComponent implements OnInit {
   }
 
   onSubmit(): void {
-    this.loading = true;
-    this.error = '';
-    const formData = new FormData();
-    formData.append('locationId', this.form.locationId);
-    formData.append('name', this.form.name);
-    formData.append('address', this.form.address);
-    formData.append('type', this.form.type);
-    formData.append('date', this.form.date);
-    formData.append('regular', String(this.form.regular));
-    formData.append('free', String(this.form.free));
-    if (!this.form.free && this.form.price !== null) formData.append('price', this.form.price);
-    if (this.selectedFile) formData.append('image', this.selectedFile);
+    this.loading.set(true);
+    const parts: MultiPart[] = [
+      { name: 'locationId', content: String(this.form.locationId) },
+      { name: 'name', content: this.form.name },
+      { name: 'address', content: this.form.address },
+      { name: 'type', content: this.form.type },
+      { name: 'date', content: this.form.date },
+      { name: 'regular', content: String(this.form.regular) },
+      { name: 'free', content: String(this.form.free) },
+    ];
+    if (!this.form.free && this.form.price !== null) parts.push({ name: 'price', content: String(this.form.price) });
+    if (this.selectedFile) parts.push({ name: 'image', content: this.selectedFile });
 
     const obs = this.isEdit
-      ? this.eventService.updateEvent(this.eventId!, formData)
-      : this.eventService.createEvent(formData);
+      ? this.api.events.updateEvent(this.eventId!, parts)
+      : this.api.events.createEvent(parts);
 
-    obs.subscribe({
+    obs.pipe(finalize(() => this.loading.set(false))).subscribe({
       next: () => {
-        this.success = `Event ${this.isEdit ? 'updated' : 'created'} successfully!`;
-        this.loading = false;
+        this.toast.success(`Event ${this.isEdit ? 'updated' : 'created'} successfully!`);
         setTimeout(() => this.router.navigate(['/events']), 1500);
-      },
-      error: err => { this.error = err.error || 'Operation failed'; this.loading = false; }
+      }
     });
   }
 }

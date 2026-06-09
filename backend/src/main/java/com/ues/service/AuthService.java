@@ -12,8 +12,6 @@ import com.ues.repository.UserRepository;
 import com.ues.security.JwtTokenProvider;
 import com.ues.security.UserDetailsImpl;
 import jakarta.annotation.PostConstruct;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -26,8 +24,6 @@ import java.time.LocalDateTime;
 
 @Service
 public class AuthService {
-
-    private static final Logger logger = LogManager.getLogger(AuthService.class);
 
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
@@ -60,12 +56,10 @@ public class AuthService {
                     .active(true)
                     .build();
             userRepository.save(admin);
-            logger.info("Default admin user created: admin@ues.com / admin123");
         }
     }
 
     public LoginResponse login(LoginRequest request) {
-        logger.info("Login attempt for: {}", request.getEmail());
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
@@ -73,14 +67,12 @@ public class AuthService {
         String jwt = jwtTokenProvider.generateToken(authentication);
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         User user = userRepository.findByEmail(userDetails.getEmail()).orElseThrow();
-        logger.info("User logged in successfully: {}", request.getEmail());
         return new LoginResponse(jwt, user.getId(), user.getEmail(),
                 user.getFirstName(), user.getLastName(), user.getRole().name());
     }
 
     @Transactional
     public void register(RegisterRequest request) {
-        logger.info("Registration request from: {}", request.getEmail());
         if (userRepository.existsByEmail(request.getEmail()) ||
                 accountRequestRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already in use");
@@ -101,6 +93,5 @@ public class AuthService {
                 .build();
 
         accountRequestRepository.save(accountRequest);
-        logger.info("Registration request saved for: {}", request.getEmail());
     }
 }

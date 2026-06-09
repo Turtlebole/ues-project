@@ -1,96 +1,98 @@
-<div class="hero-section text-center">
-  <div class="container">
-    <h1 class="display-4 fw-bold"><i class="bi bi-calendar-event me-3"></i>UES Event Finder</h1>
-    <p class="lead">Discover events and venues happening around you</p>
-  </div>
-</div>
+<div class="container py-5">
+  <header class="mb-5">
+    <p class="eyebrow mb-2">All events, into one app</p>
+    <h1 class="mb-3">Find the best events, <span class="hero-accent">instantly.</span></h1>
+    <p class="lead mb-0">Discover what's happening around the city — venues, concerts and more, in real time.</p>
+  </header>
 
-<div class="container mb-5">
-  <!-- Today's Events -->
   <section class="mb-5">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2><i class="bi bi-calendar-day me-2 text-primary"></i>Today's Events</h2>
-      <a routerLink="/events" class="btn btn-outline-primary btn-sm">See all events</a>
+    <div class="d-flex justify-content-between align-items-end mb-4">
+      <h2 class="mb-0">Today's events</h2>
+      <a routerLink="/events" class="btn btn-outline-secondary btn-sm">See all</a>
     </div>
-    @if (todayEvents.length === 0) {
-      <div class="alert alert-info">No events today.</div>
-    }
-    <div class="row g-3">
-      @for (event of todayEvents; track event.id) {
-        <div class="col-md-4 col-lg-3">
-          <div class="card h-100">
-            <img [src]="getEventImageUrl(event.image)" class="event-image" [alt]="event.name"
-                 onerror="this.src='https://via.placeholder.com/300x160?text=Event'">
-            <div class="card-body p-3">
-              <h6 class="card-title fw-bold mb-1">{{ event.name }}</h6>
-              <p class="text-muted small mb-1"><i class="bi bi-geo-alt me-1"></i>{{ event.locationName }}</p>
-              <p class="text-muted small mb-2"><i class="bi bi-clock me-1"></i>{{ event.date | date:'HH:mm' }}</p>
-              <div class="d-flex gap-1">
-                @if (event.free) {
-                  <span class="badge badge-free">Free</span>
-                } @else {
-                  <span class="badge badge-paid">{{ event.price | currency:'EUR' }}</span>
-                }
-                @if (event.regular) {
-                  <span class="badge badge-regular">Regular</span>
-                }
-              </div>
-            </div>
-          </div>
-        </div>
+    @if (todayEvents(); as events) {
+      @if (events.length === 0) {
+        <div class="alert alert-info">No events today.</div>
       }
-    </div>
-  </section>
-
-  <!-- Popular Locations -->
-  <section class="mb-5">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2><i class="bi bi-star-fill me-2 text-warning"></i>Most Popular Locations</h2>
-      <a routerLink="/locations" class="btn btn-outline-primary btn-sm">See all locations</a>
-    </div>
-    <div class="row g-3">
-      @for (loc of popularLocations; track loc.id) {
-        <div class="col-md-4 col-lg-3">
-          <div class="card h-100" [routerLink]="['/locations', loc.id]" style="cursor:pointer">
-            <img [src]="getImageUrl(loc.image)" class="location-image" [alt]="loc.name"
-                 onerror="this.src='https://via.placeholder.com/300x200?text=Location'">
-            <div class="card-body p-3">
-              <h6 class="card-title fw-bold mb-1">{{ loc.name }}</h6>
-              <p class="text-muted small mb-2"><i class="bi bi-geo-alt me-1"></i>{{ loc.address }}</p>
-              <div class="d-flex justify-content-between align-items-center">
-                <span class="badge bg-secondary">{{ loc.type }}</span>
-                <span class="rating-badge"><i class="bi bi-star-fill me-1"></i>{{ getStars(loc.averageRating) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      }
-    </div>
-  </section>
-
-  <!-- Recent Reviews from Most Popular Location -->
-  @if (recentReviews.length > 0) {
-    <section>
-      <h2 class="mb-3"><i class="bi bi-chat-quote me-2 text-info"></i>Recent Reviews (Most Popular Location)</h2>
       <div class="row g-3">
-        @for (review of recentReviews; track review.id) {
-          <div class="col-md-4">
-            <div class="card review-card p-3">
-              <p class="fw-bold mb-1">{{ review.userFirstName }} {{ review.userLastName }}</p>
-              <p class="text-muted small mb-1">For: <strong>{{ review.eventName }}</strong></p>
-              @if (review.comment) {
-                <p class="mb-1">{{ review.comment }}</p>
-              }
-              @if (review.rate) {
-                <div class="small text-muted">
-                  @if (review.rate.overallRating) { <span>Overall: {{ review.rate.overallRating }}/10</span> }
+        @for (event of events; track event.id) {
+          <div class="col-md-4 col-lg-3">
+            <div class="card h-100">
+              <img [src]="getEventImageUrl(event.image)" class="event-image" [alt]="event.name"
+                   onerror="this.src='https://via.placeholder.com/300x160?text=Event'">
+              <div class="card-body p-3">
+                <h6 class="card-title mb-1">{{ event.name }}</h6>
+                <p class="text-muted small mb-1">{{ event.locationName }}</p>
+                <p class="text-muted small mb-2">{{ event.date | date:'HH:mm' }}</p>
+                <div class="d-flex flex-wrap gap-1">
+                  @if (event.free) {
+                    <span class="badge badge-free">Free</span>
+                  } @else {
+                    <span class="badge badge-paid">{{ event.price | currency:'EUR' }}</span>
+                  }
+                  @if (event.regular) {
+                    <span class="badge badge-regular">Regular</span>
+                  }
                 </div>
-              }
-              <p class="text-muted small mt-1 mb-0">{{ review.createdAt | date:'mediumDate' }}</p>
+              </div>
             </div>
           </div>
         }
       </div>
-    </section>
+    } @else {
+      <app-spinner />
+    }
+  </section>
+
+  <section class="mb-5">
+    <div class="d-flex justify-content-between align-items-end mb-4">
+      <h2 class="mb-0">Most popular venues</h2>
+      <a routerLink="/locations" class="btn btn-outline-secondary btn-sm">See all</a>
+    </div>
+    <div class="row g-3">
+      @for (loc of popularLocations() ?? []; track loc.id) {
+        <div class="col-md-4 col-lg-3">
+          <div class="card h-100" [routerLink]="['/locations', loc.id]" style="cursor:pointer">
+            <img [src]="getImageUrl(loc.image)" class="location-image" [alt]="loc.name"
+                 onerror="this.src='https://via.placeholder.com/300x200?text=Venue'">
+            <div class="card-body p-3">
+              <h6 class="card-title mb-1">{{ loc.name }}</h6>
+              <p class="text-muted small mb-2">{{ loc.address }}</p>
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="badge bg-secondary">{{ loc.type }}</span>
+                <span class="rating-badge">{{ getStars(loc.averageRating) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  @if (recentReviews(); as reviews) {
+    @if (reviews.length > 0) {
+      <section>
+        <h2 class="mb-4">Recent reviews</h2>
+        <div class="row g-3">
+          @for (review of reviews; track review.id) {
+            <div class="col-md-4">
+              <div class="card review-card p-3 h-100">
+                <p class="fw-bold mb-1">{{ review.userFirstName }} {{ review.userLastName }}</p>
+                <p class="text-muted small mb-1">For: <strong>{{ review.eventName }}</strong></p>
+                @if (review.comment) {
+                  <p class="mb-1">{{ review.comment }}</p>
+                }
+                @if (review.rate?.overallRating) {
+                  <div class="small text-muted">
+                    <span>Overall: {{ review.rate.overallRating }}/10</span>
+                  </div>
+                }
+                <p class="text-muted small mt-1 mb-0">{{ review.createdAt | date:'mediumDate' }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    }
   }
 </div>

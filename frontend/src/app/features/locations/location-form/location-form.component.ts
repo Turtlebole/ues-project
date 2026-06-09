@@ -1,9 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { LocationService } from '../../../core/services/location.service';
-import { AuthService } from '../../../core/services/auth.service';
+import { finalize } from 'rxjs';
+import { ApiService } from '../../../core/api/api.service';
+import { ToastService } from '../../../core/services/toast.service';
+import { MultiPart } from '../../../core/api/rest.model';
 
 @Component({
   selector: 'app-location-form',
@@ -15,8 +17,6 @@ import { AuthService } from '../../../core/services/auth.service';
         <div class="col-md-7">
           <div class="card p-4 shadow">
             <h2>{{ isEdit ? 'Edit Location' : 'Add New Location' }}</h2>
-            @if (error) { <div class="alert alert-danger">{{ error }}</div> }
-            @if (success) { <div class="alert alert-success">{{ success }}</div> }
             <form (ngSubmit)="onSubmit()">
               @if (!isEdit) {
                 <div class="mb-3">
@@ -51,8 +51,8 @@ import { AuthService } from '../../../core/services/auth.service';
                 <input type="file" class="form-control" (change)="onFileChange($event)" accept="image/*" [required]="!isEdit">
               </div>
               <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary" [disabled]="loading">
-                  @if (loading) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                <button type="submit" class="btn btn-primary" [disabled]="loading()">
+                  @if (loading()) { <span class="spinner-border spinner-border-sm me-1"></span> }
                   {{ isEdit ? 'Update' : 'Create' }} Location
                 </button>
                 <button type="button" class="btn btn-outline-secondary" routerLink="/locations">Cancel</button>
@@ -65,27 +65,25 @@ import { AuthService } from '../../../core/services/auth.service';
   `
 })
 export class LocationFormComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private api = inject(ApiService);
+  private toast = inject(ToastService);
+
   isEdit = false;
   locationId: number | null = null;
   form = { name: '', address: '', type: '', description: '' };
   selectedFile: File | null = null;
-  error = '';
-  success = '';
-  loading = false;
-
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private locationService: LocationService
-  ) {}
+  loading = signal(false);
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.isEdit = true;
       this.locationId = Number(id);
-      this.locationService.getLocation(this.locationId).subscribe(loc => {
-        this.form = { name: loc.name, address: loc.address, type: loc.type, description: loc.description };
+      this.api.locations.getLocation(this.locationId).subscribe(r => {
+        const loc = r.data;
+        if (loc) this.form = { name: loc.name, address: loc.address, type: loc.type, description: loc.description };
       });
     }
   }
@@ -96,26 +94,24 @@ export class LocationFormComponent implements OnInit {
   }
 
   onSubmit(): void {
-    this.loading = true;
-    this.error = '';
-    const formData = new FormData();
-    if (!this.isEdit) formData.append('name', this.form.name);
-    formData.append('address', this.form.address);
-    formData.append('type', this.form.type);
-    formData.append('description', this.form.description);
-    if (this.selectedFile) formData.append('image', this.selectedFile);
+    this.loading.set(true);
+    const parts: MultiPart[] = [
+      { name: 'address', content: this.form.address },
+      { name: 'type', content: this.form.type },
+      { name: 'description', content: this.form.description },
+    ];
+    if (!this.isEdit) parts.push({ name: 'name', content: this.form.name });
+    if (this.selectedFile) parts.push({ name: 'image', content: this.selectedFile });
 
     const obs = this.isEdit
-      ? this.locationService.updateLocation(this.locationId!, formData)
-      : this.locationService.createLocation(formData);
+      ? this.api.locations.updateLocation(this.locationId!, parts)
+      : this.api.locations.createLocation(parts);
 
-    obs.subscribe({
+    obs.pipe(finalize(() => this.loading.set(false))).subscribe({
       next: () => {
-        this.success = `Location ${this.isEdit ? 'updated' : 'created'} successfully!`;
-        this.loading = false;
+        this.toast.success(`Location ${this.isEdit ? 'updated' : 'created'} successfully!`);
         setTimeout(() => this.router.navigate(['/locations']), 1500);
-      },
-      error: err => { this.error = err.error || 'Operation failed'; this.loading = false; }
+      }
     });
   }
 }

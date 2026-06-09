@@ -22,9 +22,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     @Query("SELECT e FROM Event e WHERE " +
            "e.date >= :startOfDay AND e.date < :endOfDay AND " +
-           "(:type IS NULL OR LOWER(e.type) LIKE LOWER(CONCAT('%', :type, '%'))) AND " +
+           "LOWER(e.type) LIKE LOWER(CONCAT('%', :type, '%')) AND " +
            "(:locationId IS NULL OR e.location.id = :locationId) AND " +
-           "(:address IS NULL OR LOWER(e.address) LIKE LOWER(CONCAT('%', :address, '%'))) AND " +
+           "LOWER(e.address) LIKE LOWER(CONCAT('%', :address, '%')) AND " +
            "(:maxPrice IS NULL OR (e.free = true OR e.price <= :maxPrice))")
     List<Event> searchEvents(
             @Param("startOfDay") LocalDateTime startOfDay,

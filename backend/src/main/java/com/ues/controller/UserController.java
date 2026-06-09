@@ -5,8 +5,6 @@ import com.ues.dto.UserDTO;
 import com.ues.security.UserDetailsImpl;
 import com.ues.service.UserService;
 import jakarta.validation.Valid;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,8 +15,6 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
-
-    private static final Logger logger = LogManager.getLogger(UserController.class);
 
     private final UserService userService;
 
@@ -39,7 +35,6 @@ public class UserController {
             @RequestParam(required = false) String lastName,
             @RequestParam(required = false) MultipartFile profileImage,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        logger.info("Updating profile for user: {}", userDetails.getId());
         return ResponseEntity.ok(userService.updateProfile(userDetails.getId(), firstName, lastName, profileImage));
     }
 
@@ -48,7 +43,6 @@ public class UserController {
     public ResponseEntity<String> changePassword(
             @Valid @RequestBody ChangePasswordRequest request,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        logger.info("Password change request for user: {}", userDetails.getId());
         userService.changePassword(userDetails.getId(), request);
         return ResponseEntity.ok("Password changed successfully");
     }

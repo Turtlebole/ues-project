@@ -5,8 +5,6 @@ import com.ues.dto.RateDTO;
 import com.ues.dto.ReviewDTO;
 import com.ues.model.*;
 import com.ues.repository.*;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,8 +15,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class ReviewService {
-
-    private static final Logger logger = LogManager.getLogger(ReviewService.class);
 
     private final ReviewRepository reviewRepository;
     private final LocationRepository locationRepository;
@@ -108,7 +104,6 @@ public class ReviewService {
                 .build();
         rateRepository.save(rate);
 
-        logger.info("Review created by user {} for location {}", userId, locationId);
         return toDTO(review);
     }
 
@@ -117,7 +112,6 @@ public class ReviewService {
         Review review = reviewRepository.findById(reviewId).orElseThrow(() -> new RuntimeException("Review not found"));
         review.setHidden(!review.isHidden());
         reviewRepository.save(review);
-        logger.info("Review {} hidden status toggled to: {}", reviewId, review.isHidden());
     }
 
     @Transactional
@@ -125,7 +119,6 @@ public class ReviewService {
         Review review = reviewRepository.findById(reviewId).orElseThrow(() -> new RuntimeException("Review not found"));
         review.setDeleted(true);
         reviewRepository.save(review);
-        logger.info("Review {} soft deleted", reviewId);
     }
 
     @Transactional
@@ -137,17 +130,13 @@ public class ReviewService {
         if (parentCommentId != null) {
             parentComment = commentRepository.findById(parentCommentId)
                     .orElseThrow(() -> new RuntimeException("Parent comment not found"));
-            // Validate: if parent is a top-level comment by manager, any user can reply
-            // If it's a reply, check it's a manager's comment at root level
             boolean isManagerReply = isManagerComment(parentComment, review.getLocation());
             if (!isManagerReply && parentComment.getParentComment() == null) {
-                // Only managers can reply to top-level user comments
                 if (!managesRepository.existsByUserAndLocation(user, review.getLocation())) {
                     throw new RuntimeException("Only managers can reply to user reviews directly");
                 }
             }
         } else {
-            // Top-level comment must be from manager
             if (!managesRepository.existsByUserAndLocation(user, review.getLocation())) {
                 throw new RuntimeException("Only managers can add top-level comments on reviews");
             }
@@ -161,7 +150,6 @@ public class ReviewService {
                 .parentComment(parentComment)
                 .build();
         comment = commentRepository.save(comment);
-        logger.info("Comment added to review {} by user {}", reviewId, userId);
         return toCommentDTO(comment);
     }
 

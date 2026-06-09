@@ -5,8 +5,6 @@ import com.ues.model.Event;
 import com.ues.model.Location;
 import com.ues.repository.EventRepository;
 import com.ues.repository.LocationRepository;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,8 +17,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class EventService {
-
-    private static final Logger logger = LogManager.getLogger(EventService.class);
 
     private final EventRepository eventRepository;
     private final LocationRepository locationRepository;
@@ -45,7 +41,11 @@ public class EventService {
                                         String address, Double maxPrice) {
         LocalDateTime start = (date != null ? date : LocalDate.now()).atStartOfDay();
         LocalDateTime end = start.toLocalDate().atTime(LocalTime.MAX);
-        return eventRepository.searchEvents(start, end, type, locationId, address, maxPrice)
+        return eventRepository.searchEvents(start, end,
+            type != null ? type : "",
+            locationId,
+            address != null ? address : "",
+            maxPrice)
                 .stream().map(this::toDTO).collect(Collectors.toList());
     }
 
@@ -81,7 +81,6 @@ public class EventService {
                 .image(imageName)
                 .build();
         event = eventRepository.save(event);
-        logger.info("Event created: {} at location {}", name, locationId);
         return toDTO(event);
     }
 
@@ -103,7 +102,6 @@ public class EventService {
             event.setImage(fileStorageService.storeFile(image));
         }
         event = eventRepository.save(event);
-        logger.info("Event updated: {}", id);
         return toDTO(event);
     }
 
@@ -113,7 +111,6 @@ public class EventService {
                 .orElseThrow(() -> new RuntimeException("Event not found"));
         fileStorageService.deleteFile(event.getImage());
         eventRepository.delete(event);
-        logger.info("Event deleted: {}", id);
     }
 
     public EventDTO toDTO(Event event) {

@@ -1,11 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { LocationService } from '../../../core/services/location.service';
-import { EventService } from '../../../core/services/event.service';
-import { ReviewService } from '../../../core/services/review.service';
+import { BehaviorSubject, map, switchMap } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ApiService } from '../../../core/api/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-location-detail',
@@ -13,109 +14,97 @@ import { AuthService } from '../../../core/services/auth.service';
   imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './location-detail.component.html'
 })
-export class LocationDetailComponent implements OnInit {
-  location: any = null;
-  events: any[] = [];
-  reviews: any[] = [];
+export class LocationDetailComponent {
+  private route = inject(ActivatedRoute);
+  private api = inject(ApiService);
+  private toast = inject(ToastService);
+  authService = inject(AuthService);
+
+  private id = Number(this.route.snapshot.paramMap.get('id'));
+
   sortBy = 'date';
   sortDir = 'desc';
-  loading = false;
   showReviewForm = false;
   reviewForm: any = { eventId: null, comment: '', performanceRating: null, soundLightRating: null, spaceRating: null, overallRating: null };
-  reviewError = '';
-  reviewSuccess = '';
   commentText: { [reviewId: number]: string } = {};
   replyText: { [commentId: number]: string } = {};
   showReplyForm: { [commentId: number]: boolean } = {};
 
-  constructor(
-    private route: ActivatedRoute,
-    public locationService: LocationService,
-    public eventService: EventService,
-    public reviewService: ReviewService,
-    public authService: AuthService
-  ) {}
+  private reviewsRefresh$ = new BehaviorSubject<void>(undefined);
 
-  ngOnInit(): void {
-    const id = Number(this.route.snapshot.paramMap.get('id'));
-    this.loading = true;
-    this.locationService.getLocation(id).subscribe(loc => {
-      this.location = loc;
-      this.loading = false;
-    });
-    this.eventService.getEventsByLocation(id).subscribe(events => this.events = events);
-    this.loadReviews(id);
-  }
+  location = toSignal(
+    this.api.locations.getLocation(this.id).pipe(map(r => r.data)),
+    { initialValue: null as any }
+  );
 
-  loadReviews(id?: number): void {
-    const locationId = id || this.location?.id;
-    this.locationService.getReviews(locationId, this.sortBy, this.sortDir).subscribe(r => this.reviews = r);
-  }
+  reviews = toSignal(
+    this.reviewsRefresh$.pipe(
+      switchMap(() => this.api.locations.getReviews(this.id, this.sortBy, this.sortDir).pipe(map(r => r.data ?? [])))
+    ),
+    { initialValue: [] as any[] }
+  );
 
-  onSortChange(): void {
-    this.loadReviews();
-  }
+  pastRegularEvents = toSignal(
+    this.api.events.getEventsByLocation(this.id).pipe(
+      map(r => (r.data ?? []).filter((e: any) => e.regular && new Date(e.date) < new Date()))
+    ),
+    { initialValue: [] as any[] }
+  );
+
+  isManager = computed(() => {
+    const loc = this.location();
+    if (!loc || !this.authService.isLoggedIn()) return false;
+    if (this.authService.isAdmin()) return true;
+    return (loc.managers ?? []).some((m: any) => m.id === this.authService.currentUser?.id);
+  });
+
+  managerNames = computed(() =>
+    (this.location()?.managers ?? []).map((m: any) => `${m.firstName} ${m.lastName}`).join(', ')
+  );
+
+  onSortChange(): void { this.reviewsRefresh$.next(); }
 
   submitReview(): void {
-    this.reviewError = '';
-    const data = { locationId: this.location.id, ...this.reviewForm };
-    this.reviewService.createReview(data).subscribe({
+    const data = { locationId: this.id, ...this.reviewForm };
+    this.api.reviews.createReview(data).subscribe({
       next: () => {
-        this.reviewSuccess = 'Review submitted!';
         this.showReviewForm = false;
         this.reviewForm = { eventId: null, comment: '', performanceRating: null, soundLightRating: null, spaceRating: null, overallRating: null };
-        this.loadReviews();
-      },
-      error: err => this.reviewError = err.error || 'Failed to submit review'
+        this.reviewsRefresh$.next();
+        this.toast.success('Review submitted!');
+      }
     });
   }
 
   hideReview(reviewId: number): void {
-    this.reviewService.hideReview(reviewId).subscribe(() => this.loadReviews());
+    this.api.reviews.hideReview(reviewId).subscribe(() => this.reviewsRefresh$.next());
   }
 
   deleteReview(reviewId: number): void {
     if (confirm('Delete this review?')) {
-      this.reviewService.deleteReview(reviewId).subscribe(() => this.loadReviews());
+      this.api.reviews.deleteReview(reviewId).subscribe(() => this.reviewsRefresh$.next());
     }
   }
 
   addComment(reviewId: number): void {
     const text = this.commentText[reviewId];
     if (!text) return;
-    this.reviewService.addComment(reviewId, text).subscribe(() => {
+    this.api.reviews.addComment(reviewId, text).subscribe(() => {
       this.commentText[reviewId] = '';
-      this.loadReviews();
+      this.reviewsRefresh$.next();
     });
   }
 
   addReply(reviewId: number, parentCommentId: number): void {
     const text = this.replyText[parentCommentId];
     if (!text) return;
-    this.reviewService.addComment(reviewId, text, parentCommentId).subscribe(() => {
+    this.api.reviews.addComment(reviewId, text, parentCommentId).subscribe(() => {
       this.replyText[parentCommentId] = '';
       this.showReplyForm[parentCommentId] = false;
-      this.loadReviews();
+      this.reviewsRefresh$.next();
     });
   }
 
-  getImageUrl(img: string): string {
-    return this.locationService.getImageUrl(img);
-  }
-
-  getEventImageUrl(img: string): string {
-    return this.eventService.getImageUrl(img);
-  }
-
-  get pastRegularEvents(): any[] {
-    const now = new Date();
-    return this.events.filter(e => e.regular && new Date(e.date) < now);
-  }
-
-  isManager(): boolean {
-    if (!this.authService.isLoggedIn() || !this.location) return false;
-    if (this.authService.isAdmin()) return true;
-    const managers = this.location.managers || [];
-    return managers.some((m: any) => m.id === this.authService.currentUser?.id);
-  }
+  getImageUrl(img: string): string { return this.api.locations.getImageUrl(img); }
+  getEventImageUrl(img: string): string { return this.api.events.getImageUrl(img); }
 }

@@ -1,7 +1,5 @@
 package com.ues.service;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -16,8 +14,6 @@ import java.util.UUID;
 
 @Service
 public class FileStorageService {
-
-    private static final Logger logger = LogManager.getLogger(FileStorageService.class);
 
     @Value("${file.upload-dir}")
     private String uploadDir;
@@ -36,10 +32,8 @@ public class FileStorageService {
             Files.createDirectories(uploadPath);
             Path targetLocation = uploadPath.resolve(fileName);
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-            logger.info("Stored file: {}", fileName);
             return fileName;
         } catch (IOException e) {
-            logger.error("Failed to store file: {}", e.getMessage());
             throw new RuntimeException("Could not store file " + fileName, e);
         }
     }
@@ -50,9 +44,8 @@ public class FileStorageService {
             Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
             Path filePath = uploadPath.resolve(fileName);
             Files.deleteIfExists(filePath);
-            logger.info("Deleted file: {}", fileName);
         } catch (IOException e) {
-            logger.error("Failed to delete file {}: {}", fileName, e.getMessage());
+            // ignore delete failures
         }
     }
 }

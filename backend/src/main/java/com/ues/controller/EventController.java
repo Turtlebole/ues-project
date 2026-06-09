@@ -2,8 +2,6 @@ package com.ues.controller;
 
 import com.ues.dto.EventDTO;
 import com.ues.service.EventService;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,8 +16,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/events")
 public class EventController {
-
-    private static final Logger logger = LogManager.getLogger(EventController.class);
 
     private final EventService eventService;
 
@@ -64,7 +60,6 @@ public class EventController {
             @RequestParam(required = false) Double price,
             @RequestParam boolean free,
             @RequestParam MultipartFile image) {
-        logger.info("Creating event: {} at location {}", name, locationId);
         return ResponseEntity.ok(eventService.createEvent(locationId, name, address, type,
                 date, regular, price, free, image));
     }
@@ -81,14 +76,12 @@ public class EventController {
             @RequestParam(required = false) Double price,
             @RequestParam(defaultValue = "false") boolean free,
             @RequestParam(required = false) MultipartFile image) {
-        logger.info("Updating event: {}", id);
         return ResponseEntity.ok(eventService.updateEvent(id, name, address, type, date, regular, price, free, image));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<Void> deleteEvent(@PathVariable Long id) {
-        logger.info("Deleting event: {}", id);
         eventService.deleteEvent(id);
         return ResponseEntity.noContent().build();
     }

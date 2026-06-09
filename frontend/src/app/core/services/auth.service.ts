@@ -1,16 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
-import { environment } from '../../../environments/environment';
-
-export interface LoginResponse {
-  token: string;
-  id: number;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: string;
-}
+import { BehaviorSubject, Observable, map, tap } from 'rxjs';
+import { environment } from '../../../config/environment';
 
 export interface CurrentUser {
   id: number;
@@ -22,24 +13,24 @@ export interface CurrentUser {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private http = inject(HttpClient);
   private currentUserSubject = new BehaviorSubject<CurrentUser | null>(this.getStoredUser());
   currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
-
-  login(email: string, password: string): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${environment.apiUrl}/auth/login`, { email, password }).pipe(
+  login(email: string, password: string): Observable<CurrentUser> {
+    return this.http.post<any>(`${environment.apiUrl}/auth/login`, { email, password }).pipe(
       tap(res => {
         localStorage.setItem('token', res.token);
         const user: CurrentUser = { id: res.id, email: res.email, firstName: res.firstName, lastName: res.lastName, role: res.role };
         localStorage.setItem('currentUser', JSON.stringify(user));
         this.currentUserSubject.next(user);
-      })
+      }),
+      map(res => ({ id: res.id, email: res.email, firstName: res.firstName, lastName: res.lastName, role: res.role }))
     );
   }
 
-  register(data: any): Observable<string> {
-    return this.http.post(`${environment.apiUrl}/auth/register`, data, { responseType: 'text' });
+  register(data: any): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/auth/register`, data);
   }
 
   logout(): void {

@@ -1,11 +1,10 @@
-import { Component, OnInit, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, ElementRef, ViewChild, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { AnalyticsService } from '../../../core/services/analytics.service';
-import { LocationService } from '../../../core/services/location.service';
+import { finalize } from 'rxjs';
+import { ApiService } from '../../../core/api/api.service';
 
-// Chart.js is loaded via CDN
 declare const Chart: any;
 
 @Component({
@@ -14,50 +13,37 @@ declare const Chart: any;
   imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './analytics.component.html'
 })
-export class AnalyticsComponent implements OnInit, AfterViewInit {
+export class AnalyticsComponent implements OnInit {
   @ViewChild('eventTypeChart') eventTypeChartRef!: ElementRef;
   @ViewChild('pricingChart') pricingChartRef!: ElementRef;
 
+  private route = inject(ActivatedRoute);
+  private api = inject(ApiService);
   locationId!: number;
-  location: any = null;
-  analytics: any = null;
+  location = signal<any>(null);
+  analytics = signal<any>(null);
   period = 'monthly';
   customStart = '';
   customEnd = '';
-  loading = false;
-  error = '';
+  loading = signal(false);
   private charts: any[] = [];
-
-  constructor(
-    private route: ActivatedRoute,
-    private analyticsService: AnalyticsService,
-    private locationService: LocationService
-  ) {}
 
   ngOnInit(): void {
     this.locationId = Number(this.route.snapshot.paramMap.get('locationId'));
-    this.locationService.getLocation(this.locationId).subscribe(loc => this.location = loc);
+    this.api.locations.getLocation(this.locationId).subscribe(r => this.location.set(r.data));
     this.loadAnalytics();
   }
 
-  ngAfterViewInit(): void {}
-
   loadAnalytics(): void {
-    this.loading = true;
-    this.error = '';
-    this.analyticsService.getAnalytics(
+    this.loading.set(true);
+    this.api.analytics.getAnalytics(
       this.locationId, this.period,
       this.customStart || undefined,
       this.customEnd || undefined
-    ).subscribe({
-      next: data => {
-        this.analytics = data;
-        this.loading = false;
+    ).pipe(finalize(() => this.loading.set(false))).subscribe({
+      next: r => {
+        this.analytics.set(r.data);
         setTimeout(() => this.renderCharts(), 100);
-      },
-      error: err => {
-        this.error = 'Failed to load analytics';
-        this.loading = false;
       }
     });
   }
@@ -69,33 +55,26 @@ export class AnalyticsComponent implements OnInit, AfterViewInit {
 
   renderCharts(): void {
     this.destroyCharts();
-    if (!this.analytics || typeof Chart === 'undefined') return;
+    const data = this.analytics();
+    if (!data || typeof Chart === 'undefined') return;
 
     if (this.eventTypeChartRef?.nativeElement) {
-      const ctx = this.eventTypeChartRef.nativeElement.getContext('2d');
-      this.charts.push(new Chart(ctx, {
+      this.charts.push(new Chart(this.eventTypeChartRef.nativeElement.getContext('2d'), {
         type: 'doughnut',
         data: {
           labels: ['Regular', 'Irregular'],
-          datasets: [{
-            data: [this.analytics.regularEvents, this.analytics.irregularEvents],
-            backgroundColor: ['#6610f2', '#adb5bd']
-          }]
+          datasets: [{ data: [data.regularEvents, data.irregularEvents], backgroundColor: ['#6610f2', '#adb5bd'] }]
         },
         options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
       }));
     }
 
     if (this.pricingChartRef?.nativeElement) {
-      const ctx = this.pricingChartRef.nativeElement.getContext('2d');
-      this.charts.push(new Chart(ctx, {
+      this.charts.push(new Chart(this.pricingChartRef.nativeElement.getContext('2d'), {
         type: 'doughnut',
         data: {
           labels: ['Free', 'Paid'],
-          datasets: [{
-            data: [this.analytics.freeEvents, this.analytics.paidEvents],
-            backgroundColor: ['#198754', '#0d6efd']
-          }]
+          datasets: [{ data: [data.freeEvents, data.paidEvents], backgroundColor: ['#198754', '#0d6efd'] }]
         },
         options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
       }));

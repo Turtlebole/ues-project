@@ -1,57 +1,44 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+<nav class="navbar navbar-expand-lg sticky-top">
   <div class="container">
-    <a class="navbar-brand" routerLink="/">
-      <i class="bi bi-calendar-event me-2"></i>UES Events
-    </a>
+    <a class="navbar-brand" routerLink="/">New Now<span class="dot">.</span></a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav me-auto">
         <li class="nav-item">
-          <a class="nav-link" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
-            <i class="bi bi-house me-1"></i>Home
-          </a>
+          <a class="nav-link" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Home</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" routerLink="/locations" routerLinkActive="active">
-            <i class="bi bi-geo-alt me-1"></i>Locations
-          </a>
+          <a class="nav-link" routerLink="/locations" routerLinkActive="active">Locations</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" routerLink="/events" routerLinkActive="active">
-            <i class="bi bi-calendar3 me-1"></i>Events
-          </a>
+          <a class="nav-link" routerLink="/events" routerLinkActive="active">Events</a>
         </li>
       </ul>
-      <ul class="navbar-nav">
+      <ul class="navbar-nav align-items-lg-center">
         @if (authService.isLoggedIn()) {
           @if (authService.isAdmin()) {
             <li class="nav-item">
-              <a class="nav-link" routerLink="/admin" routerLinkActive="active">
-                <i class="bi bi-shield-check me-1"></i>Admin
-              </a>
+              <a class="nav-link" routerLink="/admin" routerLinkActive="active">Admin</a>
             </li>
           }
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-              <i class="bi bi-person-circle me-1"></i>
               {{ authService.currentUser?.firstName }}
             </a>
             <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" routerLink="/profile"><i class="bi bi-person me-2"></i>Profile</a></li>
+              <li><a class="dropdown-item" routerLink="/profile">Profile</a></li>
               <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item text-danger" href="#" (click)="logout(); $event.preventDefault()">
-                <i class="bi bi-box-arrow-right me-2"></i>Logout
-              </a></li>
+              <li><a class="dropdown-item text-danger" href="#" (click)="logout(); $event.preventDefault()">Logout</a></li>
             </ul>
           </li>
         } @else {
           <li class="nav-item">
-            <a class="nav-link" routerLink="/login"><i class="bi bi-box-arrow-in-right me-1"></i>Login</a>
+            <a class="nav-link" routerLink="/login">Login</a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" routerLink="/register"><i class="bi bi-person-plus me-1"></i>Register</a>
+          <li class="nav-item ms-lg-2">
+            <a class="btn btn-primary btn-sm" routerLink="/register">Join the flow</a>
           </li>
         }
       </ul>
