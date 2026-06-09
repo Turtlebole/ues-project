@@ -1,0 +1,53 @@
+# Spring Boot / Maven
+backend/target/
+backend/logs/
+backend/uploads/
+backend/.mvn/wrapper/maven-wrapper.jar
+*.jar
+*.war
+*.ear
+*.class
+*.nar
+
+# Angular / Node
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/.sass-cache/
+frontend/coverage/
+frontend/npm-debug.log
+frontend/yarn-error.log
+frontend/package-lock.json
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.suo
+*.user
+.classpath
+.project
+.settings/
+.springBeans
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Secrets / Environment
+*.env
+*.env.local
+application-local.properties
+application-local.yml
+application-secret.properties
+application-secret.yml
+
+# Logs & JVM crash
+*.log
+logs/
+hs_err_pid*
+replay_pid*
