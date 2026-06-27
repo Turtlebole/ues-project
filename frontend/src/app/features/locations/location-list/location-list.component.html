@@ -9,6 +9,21 @@
     }
   </div>
 
+  <div class="card p-3 mb-3">
+    <label class="form-label fw-semibold mb-1">Full-text search</label>
+    <div class="row g-2">
+      <div class="col-md-10">
+        <input type="text" class="form-control"
+               placeholder="Search by name, description or attached PDF content..."
+               [(ngModel)]="search.query" (keyup.enter)="loadLocations()">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-primary w-100" (click)="loadLocations()">Search</button>
+      </div>
+    </div>
+    <small class="text-muted">Searches venue name, description and the text inside the uploaded PDF. Clears the filters below.</small>
+  </div>
+
   <div class="card p-3 mb-4">
     <div class="row g-2">
       <div class="col-md-4">

@@ -50,6 +50,11 @@ import { MultiPart } from '../../../core/api/rest.model';
                 <label class="form-label">Image {{ isEdit ? '(optional - leave empty to keep current)' : '*' }}</label>
                 <input type="file" class="form-control" (change)="onFileChange($event)" accept="image/*" [required]="!isEdit">
               </div>
+              <div class="mb-3">
+                <label class="form-label">Description PDF (optional - free-form text, searchable)</label>
+                <input type="file" class="form-control" (change)="onPdfChange($event)" accept="application/pdf">
+                <small class="text-muted">The PDF content is parsed and indexed for full-text search.</small>
+              </div>
               <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary" [disabled]="loading()">
                   @if (loading()) { <span class="spinner-border spinner-border-sm me-1"></span> }
@@ -74,6 +79,7 @@ export class LocationFormComponent implements OnInit {
   locationId: number | null = null;
   form = { name: '', address: '', type: '', description: '' };
   selectedFile: File | null = null;
+  selectedPdf: File | null = null;
   loading = signal(false);
 
   ngOnInit(): void {
@@ -93,6 +99,11 @@ export class LocationFormComponent implements OnInit {
     if (input.files?.length) this.selectedFile = input.files[0];
   }
 
+  onPdfChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files?.length) this.selectedPdf = input.files[0];
+  }
+
   onSubmit(): void {
     this.loading.set(true);
     const parts: MultiPart[] = [
@@ -102,6 +113,7 @@ export class LocationFormComponent implements OnInit {
     ];
     if (!this.isEdit) parts.push({ name: 'name', content: this.form.name });
     if (this.selectedFile) parts.push({ name: 'image', content: this.selectedFile });
+    if (this.selectedPdf) parts.push({ name: 'pdf', content: this.selectedPdf });
 
     const obs = this.isEdit
       ? this.api.locations.updateLocation(this.locationId!, parts)

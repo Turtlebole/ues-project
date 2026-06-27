@@ -1,8 +1,6 @@
 package com.ues.service;
 
 import com.ues.dto.LocationDTO;
-import com.ues.dto.ReviewDTO;
-import com.ues.dto.UserDTO;
 import com.ues.model.*;
 import com.ues.repository.*;
 import org.springframework.stereotype.Service;
@@ -12,7 +10,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,21 +22,44 @@ public class LocationService {
     private final ManagesRepository managesRepository;
     private final ReviewRepository reviewRepository;
     private final EventRepository eventRepository;
-    private final FileStorageService fileStorageService;
+    private final MinioStorageService minioStorageService;
+    private final PdfTextExtractorService pdfTextExtractorService;
+    private final LocationSearchService locationSearchService;
 
     public LocationService(LocationRepository locationRepository,
                            ManagesRepository managesRepository,
                            ReviewRepository reviewRepository,
                            EventRepository eventRepository,
-                           FileStorageService fileStorageService) {
+                           MinioStorageService minioStorageService,
+                           PdfTextExtractorService pdfTextExtractorService,
+                           LocationSearchService locationSearchService) {
         this.locationRepository = locationRepository;
         this.managesRepository = managesRepository;
         this.reviewRepository = reviewRepository;
         this.eventRepository = eventRepository;
-        this.fileStorageService = fileStorageService;
+        this.minioStorageService = minioStorageService;
+        this.pdfTextExtractorService = pdfTextExtractorService;
+        this.locationSearchService = locationSearchService;
     }
 
-    public List<LocationDTO> searchLocations(String name, String address, String type) {
+    /**
+     * S1 - Search locations. When {@code query} is set, performs an Elasticsearch
+     * full-text search across name, description and parsed PDF content. Otherwise
+     * falls back to the relational name/address/type filter.
+     */
+    public List<LocationDTO> searchLocations(String name, String address, String type, String query) {
+        if (query != null && !query.isBlank()) {
+            List<Long> ids = locationSearchService.search(query.trim());
+            // Preserve relevance order returned by Elasticsearch.
+            Map<Long, Location> byId = locationRepository.findAllById(ids).stream()
+                    .collect(Collectors.toMap(Location::getId, l -> l, (a, b) -> a, LinkedHashMap::new));
+            return ids.stream()
+                    .map(byId::get)
+                    .filter(java.util.Objects::nonNull)
+                    .map(this::toDTO)
+                    .collect(Collectors.toList());
+        }
+
         List<Location> locations = locationRepository.searchLocations(
             name != null ? name : "",
             address != null ? address : "",
@@ -53,32 +76,53 @@ public class LocationService {
 
     @Transactional
     public LocationDTO createLocation(String name, String address, String type,
-                                       String description, MultipartFile image) {
-        String imageName = fileStorageService.storeFile(image);
+                                       String description, MultipartFile image, MultipartFile pdf) {
+        String imageName = minioStorageService.storeFile(image);
+
+        String pdfName = null;
+        String pdfContent = null;
+        if (pdf != null && !pdf.isEmpty()) {
+            pdfName = minioStorageService.storeFile(pdf);
+            pdfContent = pdfTextExtractorService.extractText(pdf);
+        }
+
         Location location = Location.builder()
                 .name(name)
                 .address(address)
                 .type(type)
                 .description(description)
                 .image(imageName)
+                .pdfDocument(pdfName)
                 .build();
         location = locationRepository.save(location);
+
+        locationSearchService.index(location, pdfContent);
         return toDTO(location);
     }
 
     @Transactional
     public LocationDTO updateLocation(Long id, String address, String type,
-                                       String description, MultipartFile image) {
+                                       String description, MultipartFile image, MultipartFile pdf) {
         Location location = locationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Location not found"));
         if (address != null) location.setAddress(address);
         if (type != null) location.setType(type);
         if (description != null) location.setDescription(description);
         if (image != null && !image.isEmpty()) {
-            fileStorageService.deleteFile(location.getImage());
-            location.setImage(fileStorageService.storeFile(image));
+            minioStorageService.deleteFile(location.getImage());
+            location.setImage(minioStorageService.storeFile(image));
         }
+
+        // Keep the previously indexed PDF text unless a new PDF replaces it.
+        String pdfContent = locationSearchService.getIndexedPdfContent(id);
+        if (pdf != null && !pdf.isEmpty()) {
+            minioStorageService.deleteFile(location.getPdfDocument());
+            location.setPdfDocument(minioStorageService.storeFile(pdf));
+            pdfContent = pdfTextExtractorService.extractText(pdf);
+        }
+
         location = locationRepository.save(location);
+        locationSearchService.index(location, pdfContent);
         return toDTO(location);
     }
 
@@ -86,17 +130,24 @@ public class LocationService {
     public void deleteLocation(Long id) {
         Location location = locationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Location not found"));
-        fileStorageService.deleteFile(location.getImage());
+        minioStorageService.deleteFile(location.getImage());
+        minioStorageService.deleteFile(location.getPdfDocument());
         locationRepository.delete(location);
+        locationSearchService.delete(id);
+    }
+
+    /** Re-indexes every location into Elasticsearch (used on startup). */
+    public void reindexAll() {
+        for (Location location : locationRepository.findAll()) {
+            String pdfContent = locationSearchService.getIndexedPdfContent(location.getId());
+            locationSearchService.index(location, pdfContent);
+        }
     }
 
     public List<LocationDTO> getPopularLocations() {
         List<Location> all = locationRepository.findAll();
         return all.stream()
-                .map(l -> {
-                    LocationDTO dto = toDTO(l);
-                    return dto;
-                })
+                .map(this::toDTO)
                 .filter(dto -> dto.getAverageRating() != null && dto.getAverageRating() > 0)
                 .sorted(Comparator.comparingDouble(LocationDTO::getAverageRating).reversed())
                 .limit(5)
@@ -134,11 +185,12 @@ public class LocationService {
         dto.setType(location.getType());
         dto.setDescription(location.getDescription());
         dto.setImage(location.getImage());
+        dto.setPdfDocument(location.getPdfDocument());
         dto.setAverageRating(calculateAverageRating(location));
 
         List<Manages> managers = managesRepository.findByLocation(location);
         dto.setManagers(managers.stream().map(m -> {
-            UserDTO udto = new UserDTO();
+            com.ues.dto.UserDTO udto = new com.ues.dto.UserDTO();
             udto.setId(m.getUser().getId());
             udto.setEmail(m.getUser().getEmail());
             udto.setFirstName(m.getUser().getFirstName());

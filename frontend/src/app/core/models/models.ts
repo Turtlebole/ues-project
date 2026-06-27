@@ -17,6 +17,7 @@ export interface Location {
   type: string;
   description: string;
   image: string;
+  pdfDocument?: string;
   averageRating?: number;
   managers?: User[];
   upcomingEvents?: Event[];

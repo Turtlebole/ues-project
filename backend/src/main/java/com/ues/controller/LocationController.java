@@ -33,8 +33,9 @@ public class LocationController {
     public ResponseEntity<List<LocationDTO>> searchLocations(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String address,
-            @RequestParam(required = false) String type) {
-        return ResponseEntity.ok(locationService.searchLocations(name, address, type));
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String query) {
+        return ResponseEntity.ok(locationService.searchLocations(name, address, type, query));
     }
 
     @GetMapping("/{id}")
@@ -54,8 +55,9 @@ public class LocationController {
             @RequestParam String address,
             @RequestParam String type,
             @RequestParam String description,
-            @RequestParam MultipartFile image) {
-        return ResponseEntity.ok(locationService.createLocation(name, address, type, description, image));
+            @RequestParam MultipartFile image,
+            @RequestParam(required = false) MultipartFile pdf) {
+        return ResponseEntity.ok(locationService.createLocation(name, address, type, description, image, pdf));
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -66,8 +68,9 @@ public class LocationController {
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String description,
             @RequestParam(required = false) MultipartFile image,
+            @RequestParam(required = false) MultipartFile pdf,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        return ResponseEntity.ok(locationService.updateLocation(id, address, type, description, image));
+        return ResponseEntity.ok(locationService.updateLocation(id, address, type, description, image, pdf));
     }
 
     @DeleteMapping("/{id}")

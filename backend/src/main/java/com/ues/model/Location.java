@@ -35,6 +35,10 @@ public class Location {
     @Column(nullable = false)
     private String image;
 
+    /** Object name of the optional free-form PDF description stored in MinIO. */
+    @Column
+    private String pdfDocument;
+
     @OneToMany(mappedBy = "location", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Event> events;
 

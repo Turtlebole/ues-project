@@ -17,7 +17,7 @@ export class LocationListComponent {
   private api = inject(ApiService);
   authService = inject(AuthService);
 
-  search = { name: '', address: '', type: '' };
+  search = { name: '', address: '', type: '', query: '' };
 
   private search$ = new BehaviorSubject<void>(undefined);
 
@@ -27,6 +27,7 @@ export class LocationListComponent {
         name: this.search.name || undefined,
         address: this.search.address || undefined,
         type: this.search.type || undefined,
+        query: this.search.query || undefined,
       }).pipe(map(r => r.data ?? [])))
     ),
     { initialValue: null as any }

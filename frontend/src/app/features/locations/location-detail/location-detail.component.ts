@@ -106,5 +106,6 @@ export class LocationDetailComponent {
   }
 
   getImageUrl(img: string): string { return this.api.locations.getImageUrl(img); }
+  getPdfUrl(pdf: string): string { return this.api.locations.getPdfUrl(pdf); }
   getEventImageUrl(img: string): string { return this.api.events.getImageUrl(img); }
 }

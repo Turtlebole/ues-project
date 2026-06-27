@@ -17,6 +17,11 @@
         <span class="badge bg-secondary mb-3">{{ location.type }}</span>
         <p>{{ location.description }}</p>
 
+        @if (location.pdfDocument) {
+          <a [href]="getPdfUrl(location.pdfDocument)" target="_blank" rel="noopener"
+             class="btn btn-sm btn-outline-secondary mb-3">View description PDF</a>
+        }
+
         @if (location.managers?.length > 0) {
           <p class="text-muted small">Managers: {{ managerNames() }}</p>
         }

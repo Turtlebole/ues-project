@@ -8,7 +8,7 @@ import { environment } from '../../../config/environment';
 export class LocationApi extends Api {
   constructor(client: ApiClient) { super(client); }
 
-  getLocations(params?: { name?: string; address?: string; type?: string }): Observable<ApiResponse<Location[]>> {
+  getLocations(params?: { name?: string; address?: string; type?: string; query?: string }): Observable<ApiResponse<Location[]>> {
     return this.apiClient.get<Location[]>('/locations', { params });
   }
 
@@ -37,6 +37,10 @@ export class LocationApi extends Api {
   }
 
   getImageUrl(imageName: string): string {
-    return `${environment.uploadsUrl}/${imageName}`;
+    return `${environment.filesUrl}/${imageName}`;
+  }
+
+  getPdfUrl(pdfName: string): string {
+    return `${environment.filesUrl}/${pdfName}`;
   }
 }

@@ -12,6 +12,7 @@ public class LocationDTO {
     private String type;
     private String description;
     private String image;
+    private String pdfDocument;
     private Double averageRating;
     private List<EventDTO> upcomingEvents;
     private List<UserDTO> managers;
